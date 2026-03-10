@@ -171,7 +171,12 @@ export class StartScene extends Phaser.Scene {
     await this.gameplayScenesLoadPromise;
   }
 
-  private registerGameplayScene(key: string, sceneConfig: Phaser.Scene): void {
+  private registerGameplayScene(
+    key: string,
+    sceneConfig: typeof import("./GameScene").GameScene
+      | typeof import("./ResultScene").ResultScene
+      | typeof import("../../scenes/MetaOverlayScene").MetaOverlayScene
+  ): void {
     if (this.scene.get(key)) {
       return;
     }
