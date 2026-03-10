@@ -62,7 +62,7 @@ export class MetaHudPanel extends Phaser.GameObjects.Container {
       .rectangle(width - 86, 58, 72, 22, 0x1f8fdd, 1)
       .setOrigin(0, 0);
     this.cardButton.setInteractive({ useHandCursor: true });
-    const buttonText = scene.add.text(width - 50, 69, "Use Card", {
+    const buttonText = scene.add.text(width - 50, 69, "使用卡牌", {
       fontFamily: "Verdana",
       fontSize: "11px",
       color: "#ffffff",

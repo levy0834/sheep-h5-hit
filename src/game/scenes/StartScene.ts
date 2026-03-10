@@ -25,7 +25,7 @@ export class StartScene extends Phaser.Scene {
     bg.fillRect(0, 0, width, height);
 
     this.add
-      .text(width / 2, 78, "SHEEP HIT", {
+      .text(width / 2, 78, "羊了个羊·翻盘版", {
         fontFamily: "Trebuchet MS",
         fontSize: "48px",
         color: "#f8fafc",
@@ -43,7 +43,7 @@ export class StartScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, 204, `${startCopy.subtitle}\n${LEVELS.length} playable levels in prototype.`, {
+      .text(width / 2, 204, `${startCopy.subtitle}\n当前原型共 ${LEVELS.length} 关可玩。`, {
         fontFamily: "Trebuchet MS",
         fontSize: "20px",
         color: "#cbd5e1"
@@ -52,8 +52,8 @@ export class StartScene extends Phaser.Scene {
       .setWordWrapWidth(332)
       .setOrigin(0.5);
 
-    this.createGuidePanel(width / 2, 372, 340, 176, "CORE RULES", startCopy.coreRules);
-    this.createGuidePanel(width / 2, 574, 340, 176, "META LOOP TIPS", startCopy.metaHints);
+    this.createGuidePanel(width / 2, 372, 340, 176, "基础规则", startCopy.coreRules);
+    this.createGuidePanel(width / 2, 574, 340, 176, "翻盘提示", startCopy.metaHints);
 
     this.loadingHintText = this.add
       .text(
@@ -214,7 +214,7 @@ export class StartScene extends Phaser.Scene {
       this.startButton.disableInteractive();
       this.startButton.setFillStyle(0x94a3b8, 1);
       this.startButton.setStrokeStyle(3, 0x0f172a, 0.35);
-      this.startButtonLabel?.setText("LOADING...");
+      this.startButtonLabel?.setText("加载中…");
       this.startButtonLabel?.setColor("#334155");
       return;
     }

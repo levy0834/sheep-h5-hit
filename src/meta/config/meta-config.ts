@@ -25,18 +25,18 @@ export const DEFAULT_META_CONFIG: MetaConfig = {
 export const RESCUE_CARD_LIBRARY: Record<RescueCardId, RescueCard> = {
   "rewind-step": {
     id: "rewind-step",
-    name: "Step Rewind",
-    description: "Undo one bad pick and pull it out of the tray.",
+    name: "回退一步",
+    description: "撤回一次错误点击，并把那张牌从槽位里拿出来。",
   },
   "wild-pair": {
     id: "wild-pair",
-    name: "Wild Pair",
-    description: "Convert your next pick into a guaranteed pair.",
+    name: "万能对子",
+    description: "让你下一次处理更容易凑成一对。",
   },
   "overflow-shield": {
     id: "overflow-shield",
-    name: "Overflow Shield",
-    description: "Add one temporary slot for 10 seconds.",
+    name: "爆槽护盾",
+    description: "临时增加 1 个槽位，持续 10 秒。",
   },
 };
 

@@ -204,14 +204,14 @@ export class GameScene extends Phaser.Scene {
   }
 
   private drawTopControls(): void {
-    this.createMiniButton(56, 158, 84, 42, "Home", () => this.scene.start("StartScene"), true);
-    this.createMiniButton(194, 158, 92, 42, "Undo", () => this.undoLastMove());
+    this.createMiniButton(56, 158, 84, 42, "首页", () => this.scene.start("StartScene"), true);
+    this.createMiniButton(194, 158, 92, 42, "撤销", () => this.undoLastMove());
     this.createMiniButton(
       332,
       158,
       104,
       42,
-      "Restart",
+      "重开",
       () => this.scene.restart({ levelId: this.level.id }),
       true
     );
@@ -339,7 +339,7 @@ export class GameScene extends Phaser.Scene {
 
     if (this.isTileBlocked(tile)) {
       this.bounceBlocked(tile);
-      this.statusText.setText("Blocked tile. Clear tiles above first.");
+      this.statusText.setText("这张牌被压住了，先清掉上面的牌。");
       this.combo = 0;
       this.emitPlayerAction(false);
       return;
@@ -443,7 +443,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (removedAny) {
-      this.statusText.setText("Matched 3. Keep chaining.");
+      this.statusText.setText("三连消除，继续连起来！");
       this.layoutSlotTiles(110);
     } else {
       this.statusText.setText(this.getDefaultStatusMessage());
@@ -479,8 +479,8 @@ export class GameScene extends Phaser.Scene {
     const slotCapacity = this.getSlotCapacity();
     const slotDelta = slotCapacity - SLOT_CAPACITY;
     const slotDeltaLabel = slotDelta === 0 ? "" : ` (${slotDelta > 0 ? `+${slotDelta}` : slotDelta})`;
-    this.remainingText.setText(`Board: ${remainingOnBoard}`);
-    this.slotText.setText(`Slot: ${this.slotTiles.length}/${slotCapacity}${slotDeltaLabel}`);
+    this.remainingText.setText(`场上剩余：${remainingOnBoard}`);
+    this.slotText.setText(`槽位：${this.slotTiles.length}/${slotCapacity}${slotDeltaLabel}`);
     this.renderSlotMarkers(slotCapacity);
   }
 
@@ -511,7 +511,7 @@ export class GameScene extends Phaser.Scene {
 
     const snapshot = this.undoStack.pop();
     if (!snapshot) {
-      this.statusText.setText("No move to undo");
+      this.statusText.setText("没有可撤销的步骤");
       return;
     }
 
@@ -548,8 +548,8 @@ export class GameScene extends Phaser.Scene {
 
   private getDefaultStatusMessage(): string {
     return this.levelNumber === 1
-      ? "Tip: bright tiles are tappable. Dim tiles are blocked."
-      : "Match 3 same tiles";
+      ? "提示：亮牌可点，灰牌表示被挡住。"
+      : "凑齐三张同牌即可消除";
   }
 
   private applyTileState(tile: TileEntity, state: TileState): void {
@@ -622,7 +622,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.matchedTiles >= this.tiles.length) {
-      this.finishRound(true, "All tiles cleared.");
+      this.finishRound(true, "所有牌都清光了！");
       return;
     }
 
@@ -630,7 +630,7 @@ export class GameScene extends Phaser.Scene {
       if (this.consumeIgnoreOverflowShield()) {
         return;
       }
-      this.finishRound(false, "Slot bar is full.");
+      this.finishRound(false, "槽位已经满了。");
     }
   }
 
@@ -647,7 +647,7 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    this.statusText.setText(win ? "Level complete" : "No space left");
+    this.statusText.setText(win ? "本关完成" : "槽位不够了");
     const nextLevelId = win ? getNextLevelId(this.level.id) : null;
     const payload: RoundResultData = {
       win,
@@ -705,7 +705,7 @@ export class GameScene extends Phaser.Scene {
     switch (command.type) {
       case "meta/show-twist":
         this.twistCount += 1;
-        this.statusText.setText("Chaos Twist unlocked. Pick fast.");
+        this.statusText.setText("混沌抉择已触发，赶紧选！");
         break;
       case "meta/grant-card":
         this.rescueCardsGranted += 1;
@@ -716,7 +716,7 @@ export class GameScene extends Phaser.Scene {
         this.bus.emit(CORE_EVENTS.CARD_USED, { cardId: command.cardId });
         break;
       case "meta/clear-tray":
-        this.clearSlotTiles(command.count, "Twist cleared tray slots.");
+        this.clearSlotTiles(command.count, "混沌效果：已清掉部分槽位。");
         break;
       case "meta/modify-core":
         if (command.key === "overflowSlots") {
@@ -726,7 +726,7 @@ export class GameScene extends Phaser.Scene {
       case "meta/ignore-next-miss":
         this.ignoreOverflowArmed = true;
         this.ignoreOverflowExpiresAtMs = this.getRoundElapsedMs() + command.durationMs;
-        this.statusText.setText("Twist active: next overflow will be ignored.");
+        this.statusText.setText("混沌效果生效：下一次爆槽会被免除。");
         break;
       case "meta/comeback-chain":
         this.comebackChain = Math.max(this.comebackChain, command.value);
@@ -743,20 +743,20 @@ export class GameScene extends Phaser.Scene {
   private applyRescueCard(cardId: RescueCardId): void {
     if (cardId === "rewind-step") {
       this.undoLastMove();
-      this.statusText.setText("Rescue: rewind one move.");
+      this.statusText.setText("救援触发：回退一步。");
       return;
     }
 
     if (cardId === "wild-pair") {
-      const removed = this.clearSlotTiles(1, "Rescue: Wild Pair removed 1 tray tile.");
+      const removed = this.clearSlotTiles(1, "救援触发：万能对子清掉了 1 张槽位牌。");
       if (removed === 0) {
-        this.statusText.setText("Rescue: Wild Pair had no tray tile.");
+        this.statusText.setText("救援触发：当前没有可清除的槽位牌。");
       }
       return;
     }
 
     this.applyOverflowSlotModifier(1, RESCUE_OVERFLOW_DURATION_MS);
-    this.statusText.setText("Rescue: +1 slot for 10s.");
+    this.statusText.setText("救援触发：10 秒内槽位 +1。");
   }
 
   private applyOverflowSlotModifier(amount: number, durationMs?: number): void {
@@ -907,7 +907,7 @@ export class GameScene extends Phaser.Scene {
       this.overflowSlotsExpiresAtMs = 0;
       capacityChanged = true;
       shouldCheckRoundEnd = true;
-      this.statusText.setText(expiredDelta > 0 ? "Bonus slot expired." : "Slot penalty expired.");
+      this.statusText.setText(expiredDelta > 0 ? "额外槽位已失效。" : "槽位惩罚已结束。");
     }
 
     if (
@@ -949,7 +949,7 @@ export class GameScene extends Phaser.Scene {
     this.ignoreOverflowArmed = false;
     this.ignoreOverflowExpiresAtMs = 0;
     this.overflowShieldSaves += 1;
-    this.statusText.setText("Twist shield used: overflow ignored once.");
+    this.statusText.setText("护盾生效：这次爆槽已被抵消。");
     return true;
   }
 

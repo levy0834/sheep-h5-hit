@@ -4,9 +4,9 @@ import type { RoundResultData } from "../types";
 
 const defaultResult: RoundResultData = {
   win: false,
-  reason: "Round ended.",
+  reason: "本局结束。",
   levelId: "level-1",
-  levelName: "Meadow Stack",
+  levelName: "草地牌堆",
   levelNumber: 1,
   totalLevels: 1,
   taps: 0,
@@ -40,7 +40,7 @@ export class ResultScene extends Phaser.Scene {
   public create(): void {
     const { width, height } = this.scale;
     const hasNextLevel = this.result.win && Boolean(this.result.nextLevelId);
-    const replayLabel = this.result.win ? "Replay Level" : "Retry Level";
+    const replayLabel = this.result.win ? "重玩本关" : "再试一次";
     const replayY = hasNextLevel ? 694 : 724;
     const nextLevelY = 756;
     const homeY = hasNextLevel ? 812 : 792;
@@ -56,7 +56,7 @@ export class ResultScene extends Phaser.Scene {
     bg.fillRect(0, 0, width, height);
 
     this.add
-      .text(width / 2, 114, this.result.win ? "YOU WIN" : "TRY AGAIN", {
+      .text(width / 2, 114, this.result.win ? "过关成功" : "再来一局", {
         fontFamily: "Trebuchet MS",
         fontSize: "58px",
         fontStyle: "bold",
@@ -86,7 +86,7 @@ export class ResultScene extends Phaser.Scene {
       .rectangle(width / 2, 286, 332, 44, accentColor, 0.2)
       .setStrokeStyle(2, accentColor, 0.9);
     this.add
-      .text(width / 2, 286, `ROUND GRADE · ${performanceTag}`, {
+      .text(width / 2, 286, `本局评价 · ${performanceTag}`, {
         fontFamily: "Trebuchet MS",
         fontSize: "24px",
         color: "#f8fafc",
@@ -101,7 +101,7 @@ export class ResultScene extends Phaser.Scene {
       .text(
         width / 2,
         328,
-        `Level: ${this.result.levelName}\nProgress: ${this.result.levelNumber}/${this.result.totalLevels}\nTime: ${this.formatElapsed(this.result.elapsedMs)}\nTaps: ${this.result.taps}  Matched: ${this.result.matchedTiles}\nMax Combo: ${this.result.maxCombo}  Eff: ${efficiency}`,
+        `关卡：${this.result.levelName}\n进度：${this.result.levelNumber}/${this.result.totalLevels}\n用时：${this.formatElapsed(this.result.elapsedMs)}\n点击：${this.result.taps}  消除：${this.result.matchedTiles}\n最高连击：${this.result.maxCombo}  效率：${efficiency}`,
         {
           fontFamily: "Trebuchet MS",
           fontSize: "21px",
@@ -119,7 +119,7 @@ export class ResultScene extends Phaser.Scene {
       .text(
         width / 2,
         520,
-        `Twists Seen: ${this.result.twistCount}  Comeback Chain: ${this.result.comebackChain}\nCards Used/Gained: ${this.result.rescueCardsUsed}/${this.result.rescueCardsGranted}\nNear Fail Alerts: ${this.result.nearFailCount}  Overflow Saves: ${this.result.overflowShieldSaves}`,
+        `触发抉择：${this.result.twistCount}  翻盘连段：${this.result.comebackChain}\n已用/获得卡牌：${this.result.rescueCardsUsed}/${this.result.rescueCardsGranted}\n濒死提醒：${this.result.nearFailCount}  爆槽保命：${this.result.overflowShieldSaves}`,
         {
           fontFamily: "Trebuchet MS",
           fontSize: "20px",
@@ -131,7 +131,7 @@ export class ResultScene extends Phaser.Scene {
       .setOrigin(0.5, 0);
 
     this.add
-      .text(width / 2, 650, `Next: ${nextStep}`, {
+      .text(width / 2, 650, `建议：${nextStep}`, {
         fontFamily: "Trebuchet MS",
         fontSize: "21px",
         color: "#bfdbfe",
@@ -146,33 +146,33 @@ export class ResultScene extends Phaser.Scene {
     );
 
     if (hasNextLevel && this.result.nextLevelId) {
-      this.createButton(width / 2, nextLevelY, 288, 56, "Next Level", 0x4ade80, () =>
+      this.createButton(width / 2, nextLevelY, 288, 56, "下一关", 0x4ade80, () =>
         this.scene.start("GameScene", { levelId: this.result.nextLevelId })
       );
     }
 
-    this.createButton(width / 2, homeY, 288, 56, "Back To Home", 0x60a5fa, () =>
+    this.createButton(width / 2, homeY, 288, 56, "返回首页", 0x60a5fa, () =>
       this.scene.start("StartScene")
     );
   }
 
   private resolvePerformanceTag(): string {
     if (this.result.win && this.result.comebackChain >= 2) {
-      return "CLUTCH COMEBACK";
+      return "极限翻盘";
     }
     if (this.result.win && this.result.rescueCardsUsed === 0 && this.result.nearFailCount === 0) {
-      return "CLEAN CONTROL";
+      return "稳稳拿下";
     }
     if (this.result.win && this.result.maxCombo >= 2) {
-      return "COMBO FLOW";
+      return "连消顺手";
     }
     if (!this.result.win && this.result.rescueCardsGranted > this.result.rescueCardsUsed) {
-      return "CARD TIMING GAP";
+      return "卡牌时机差一点";
     }
     if (!this.result.win && this.result.nearFailCount >= 2) {
-      return "ONE MOVE SHORT";
+      return "就差一步";
     }
-    return this.result.win ? "STABLE WIN" : "RETRY READY";
+    return this.result.win ? "稳定过关" : "再试就能过";
   }
 
   private pickResultFlavor(): string {
