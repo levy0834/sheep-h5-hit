@@ -1,0 +1,784 @@
+import Phaser from "phaser";
+import {
+  BOARD_COL_GAP,
+  BOARD_ORIGIN_X,
+  BOARD_ORIGIN_Y,
+  BOARD_ROW_GAP,
+  SLOT_CAPACITY,
+  SLOT_Y,
+  TILE_HEIGHT,
+  TILE_WIDTH
+} from "../constants";
+import {
+  LEVELS,
+  TILE_KINDS,
+  getLevelById,
+  getLevelIndexById,
+  getNextLevelId
+} from "../levels";
+import { CORE_EVENTS, META_EVENTS, type EventBusLike } from "../../meta/contracts/events";
+import type { MetaCommand, RescueCardId } from "../../meta/types";
+import type { LevelDefinition, RoundResultData, TileKind, TilePlacement, TileState } from "../types";
+
+interface GameSceneData {
+  levelId?: string;
+}
+
+interface TileEntity {
+  id: number;
+  kind: TileKind;
+  placement: TilePlacement;
+  state: TileState;
+  card: Phaser.GameObjects.Container;
+  body: Phaser.GameObjects.Rectangle;
+  label: Phaser.GameObjects.Text;
+}
+
+interface RoundSnapshot {
+  taps: number;
+  matchedTiles: number;
+  combo: number;
+  maxCombo: number;
+  statusMessage: string;
+  tileStates: Array<{
+    id: number;
+    state: TileState;
+  }>;
+  slotOrder: number[];
+}
+
+const MAX_UNDO_STACK = 20;
+const MIN_SLOT_CAPACITY = 3;
+const RESCUE_OVERFLOW_DURATION_MS = 10_000;
+
+export class GameScene extends Phaser.Scene {
+  private level: LevelDefinition = LEVELS[0];
+  private levelNumber = 1;
+  private tiles: TileEntity[] = [];
+  private slotTiles: TileEntity[] = [];
+  private undoStack: RoundSnapshot[] = [];
+  private roundOver = false;
+  private taps = 0;
+  private matchedTiles = 0;
+  private combo = 0;
+  private maxCombo = 0;
+  private nearFailLatched = false;
+  private roundStartAtMs = 0;
+  private overflowSlotsDelta = 0;
+  private overflowSlotsExpiresAtMs = 0;
+  private ignoreOverflowArmed = false;
+  private ignoreOverflowExpiresAtMs = 0;
+  private bus!: EventBusLike;
+
+  private remainingText!: Phaser.GameObjects.Text;
+  private slotText!: Phaser.GameObjects.Text;
+  private statusText!: Phaser.GameObjects.Text;
+
+  public constructor() {
+    super("GameScene");
+  }
+
+  public init(data: GameSceneData): void {
+    this.tiles = [];
+    this.slotTiles = [];
+    this.undoStack = [];
+    this.roundOver = false;
+    this.taps = 0;
+    this.matchedTiles = 0;
+    this.combo = 0;
+    this.maxCombo = 0;
+    this.nearFailLatched = false;
+    this.roundStartAtMs = 0;
+    this.overflowSlotsDelta = 0;
+    this.overflowSlotsExpiresAtMs = 0;
+    this.ignoreOverflowArmed = false;
+    this.ignoreOverflowExpiresAtMs = 0;
+
+    this.level = getLevelById(data.levelId);
+    this.levelNumber = getLevelIndexById(this.level.id) + 1;
+  }
+
+  public create(): void {
+    const { width, height } = this.scale;
+    this.bus = this.game.events as unknown as EventBusLike;
+    this.roundStartAtMs = this.time.now;
+
+    this.drawBackground(width, height);
+    this.drawHud(width);
+    this.drawBoardFrame(width);
+    this.drawSlotFrame(width);
+    this.drawTopControls();
+    this.spawnTiles();
+    this.bindMetaEvents();
+    this.launchMetaOverlay();
+    this.refreshBoardState();
+    this.time.delayedCall(0, () => {
+      this.bus.emit(CORE_EVENTS.ROUND_START, { seed: Date.now() });
+    });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
+  }
+
+  private drawBackground(width: number, height: number): void {
+    const bg = this.add.graphics();
+    bg.fillGradientStyle(0x020617, 0x020617, 0x0f172a, 0x111827, 1);
+    bg.fillRect(0, 0, width, height);
+  }
+
+  private drawHud(width: number): void {
+    this.add
+      .text(width / 2, 46, `${this.level.name}  ${this.levelNumber}/${LEVELS.length}`, {
+        fontFamily: "Trebuchet MS",
+        fontSize: "34px",
+        fontStyle: "bold",
+        color: "#e2e8f0"
+      })
+      .setOrigin(0.5);
+
+    this.remainingText = this.add
+      .text(24, 92, "", {
+        fontFamily: "Trebuchet MS",
+        fontSize: "22px",
+        color: "#cbd5e1"
+      })
+      .setOrigin(0, 0.5);
+
+    this.slotText = this.add
+      .text(24, 124, "", {
+        fontFamily: "Trebuchet MS",
+        fontSize: "22px",
+        color: "#cbd5e1"
+      })
+      .setOrigin(0, 0.5);
+
+    this.statusText = this.add
+      .text(width / 2, 690, "Match 3 same tiles", {
+        fontFamily: "Trebuchet MS",
+        fontSize: "24px",
+        color: "#f1f5f9"
+      })
+      .setOrigin(0.5);
+  }
+
+  private drawBoardFrame(width: number): void {
+    this.add
+      .rectangle(width / 2, 360, 352, 420, 0x0b1225, 0.45)
+      .setStrokeStyle(2, 0x334155, 0.9);
+  }
+
+  private drawSlotFrame(width: number): void {
+    this.add
+      .rectangle(width / 2, SLOT_Y, 352, 128, 0x0b1225, 0.7)
+      .setStrokeStyle(2, 0x64748b, 0.8);
+
+    const markerSpacing = 46;
+    const markerStartX = width / 2 - ((SLOT_CAPACITY - 1) * markerSpacing) / 2;
+    for (let i = 0; i < SLOT_CAPACITY; i += 1) {
+      this.add.circle(markerStartX + i * markerSpacing, SLOT_Y, 16, 0x1e293b, 0.8);
+    }
+  }
+
+  private drawTopControls(): void {
+    this.createMiniButton(56, 158, 84, 42, "Home", () => this.scene.start("StartScene"));
+    this.createMiniButton(194, 158, 92, 42, "Undo", () => this.undoLastMove());
+    this.createMiniButton(332, 158, 104, 42, "Restart", () =>
+      this.scene.restart({ levelId: this.level.id })
+    );
+  }
+
+  private createMiniButton(
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    label: string,
+    onClick: () => void
+  ): void {
+    const button = this.add
+      .rectangle(x, y, w, h, 0x1e293b, 0.95)
+      .setStrokeStyle(2, 0x94a3b8, 0.85)
+      .setInteractive({ useHandCursor: true });
+
+    const text = this.add
+      .text(x, y, label, {
+        fontFamily: "Trebuchet MS",
+        fontSize: "20px",
+        color: "#e2e8f0",
+        fontStyle: "bold"
+      })
+      .setOrigin(0.5);
+
+    button.on("pointerover", () => button.setFillStyle(0x334155, 1));
+    button.on("pointerout", () => button.setFillStyle(0x1e293b, 0.95));
+    button.on("pointerdown", () => {
+      button.disableInteractive();
+      this.tweens.add({
+        targets: [button, text],
+        scaleX: 0.94,
+        scaleY: 0.94,
+        duration: 75,
+        yoyo: true,
+        onComplete: onClick
+      });
+    });
+  }
+
+  private spawnTiles(): void {
+    const kindById = new Map(TILE_KINDS.map((kind) => [kind.id, kind]));
+    for (let i = 0; i < this.level.placements.length; i += 1) {
+      const placement = this.level.placements[i];
+      const kind = kindById.get(placement.kindId);
+      if (!kind) {
+        throw new Error(`Unknown tile kind ${placement.kindId}`);
+      }
+
+      const x = BOARD_ORIGIN_X + placement.col * BOARD_COL_GAP;
+      const y = BOARD_ORIGIN_Y + placement.row * BOARD_ROW_GAP;
+      const body = this.add
+        .rectangle(0, 0, TILE_WIDTH, TILE_HEIGHT, kind.color, 0.96)
+        .setStrokeStyle(2, 0x0f172a, 0.45);
+      const label = this.add
+        .text(0, 1, kind.label, {
+          fontFamily: "Trebuchet MS",
+          fontSize: "29px",
+          fontStyle: "bold",
+          color: "#0f172a"
+        })
+        .setOrigin(0.5);
+
+      const card = this.add.container(x, y, [body, label]).setSize(TILE_WIDTH, TILE_HEIGHT);
+      card.setDepth(80 + placement.layer * 16 + placement.row);
+      card.setInteractive({ useHandCursor: true });
+
+      const tile: TileEntity = {
+        id: i,
+        kind,
+        placement,
+        state: "board",
+        card,
+        body,
+        label
+      };
+
+      card.on("pointerdown", () => this.onTileTapped(tile));
+      this.tiles.push(tile);
+    }
+  }
+
+  private onTileTapped(tile: TileEntity): void {
+    if (this.roundOver || tile.state !== "board") {
+      return;
+    }
+
+    if (this.isTileBlocked(tile)) {
+      this.bounceBlocked(tile);
+      this.combo = 0;
+      this.emitPlayerAction(false);
+      return;
+    }
+
+    this.pushUndoSnapshot();
+    this.taps += 1;
+    tile.state = "slot";
+    tile.card.disableInteractive();
+    this.slotTiles.push(tile);
+
+    this.layoutSlotTiles();
+    const removedCount = this.resolveMatches();
+    if (removedCount > 0) {
+      this.combo += 1;
+      this.maxCombo = Math.max(this.maxCombo, this.combo);
+    } else {
+      this.combo = 0;
+    }
+    this.refreshBoardState();
+    this.emitPlayerAction(removedCount > 0);
+    this.emitNearFailIfNeeded();
+    this.checkRoundEnd();
+  }
+
+  private bounceBlocked(tile: TileEntity): void {
+    this.tweens.add({
+      targets: tile.card,
+      y: tile.card.y - 8,
+      duration: 70,
+      yoyo: true,
+      ease: "Sine.easeInOut"
+    });
+  }
+
+  private layoutSlotTiles(duration = 140): void {
+    const spacing = 46;
+    const startX = this.scale.width / 2 - ((SLOT_CAPACITY - 1) * spacing) / 2;
+    this.slotTiles.forEach((tile, index) => {
+      const x = startX + index * spacing;
+      this.tweens.add({
+        targets: tile.card,
+        x,
+        y: SLOT_Y,
+        scaleX: 0.86,
+        scaleY: 0.86,
+        duration,
+        ease: "Cubic.Out"
+      });
+      tile.card.setDepth(300 + index);
+      tile.body.setStrokeStyle(2, 0x0f172a, 0.8);
+      tile.label.setColor("#111827");
+      tile.label.setAlpha(1);
+    });
+  }
+
+  private resolveMatches(): number {
+    let removedAny = false;
+    let removedCount = 0;
+    while (true) {
+      const counts = new Map<string, number>();
+      for (const tile of this.slotTiles) {
+        counts.set(tile.kind.id, (counts.get(tile.kind.id) ?? 0) + 1);
+      }
+
+      const matchKind = [...counts.entries()].find((entry) => entry[1] >= 3)?.[0];
+      if (!matchKind) {
+        break;
+      }
+
+      let removed = 0;
+      for (let i = 0; i < this.slotTiles.length && removed < 3; ) {
+        if (this.slotTiles[i].kind.id !== matchKind) {
+          i += 1;
+          continue;
+        }
+
+        const [matchedTile] = this.slotTiles.splice(i, 1);
+        matchedTile.state = "removed";
+        this.matchedTiles += 1;
+        removed += 1;
+        removedCount += 1;
+        removedAny = true;
+
+        this.tweens.add({
+          targets: matchedTile.card,
+          scaleX: 0.2,
+          scaleY: 0.2,
+          alpha: 0,
+          duration: 160,
+          ease: "Back.easeIn",
+          onComplete: () => {
+            matchedTile.card.setVisible(false);
+            matchedTile.card.setActive(false);
+            matchedTile.card.disableInteractive();
+          }
+        });
+      }
+    }
+
+    if (removedAny) {
+      this.statusText.setText("Matched 3. Keep chaining.");
+      this.layoutSlotTiles(110);
+    } else {
+      this.statusText.setText("Match 3 same tiles");
+    }
+    return removedCount;
+  }
+
+  private refreshBoardState(): void {
+    for (const tile of this.tiles) {
+      if (tile.state !== "board") {
+        continue;
+      }
+
+      const blocked = this.isTileBlocked(tile);
+      if (blocked) {
+        tile.body.setFillStyle(0x64748b, 0.75);
+        tile.body.setStrokeStyle(2, 0x334155, 0.85);
+        tile.label.setAlpha(0.45);
+        tile.card.disableInteractive();
+      } else {
+        tile.body.setFillStyle(tile.kind.color, 0.97);
+        tile.body.setStrokeStyle(2, 0x0f172a, 0.6);
+        tile.label.setAlpha(1);
+        if (tile.card.input) {
+          tile.card.input.enabled = true;
+        } else {
+          tile.card.setInteractive({ useHandCursor: true });
+        }
+      }
+    }
+
+    const remainingOnBoard = this.tiles.filter((tile) => tile.state === "board").length;
+    const slotCapacity = this.getSlotCapacity();
+    const slotDelta = slotCapacity - SLOT_CAPACITY;
+    const slotDeltaLabel = slotDelta === 0 ? "" : ` (${slotDelta > 0 ? `+${slotDelta}` : slotDelta})`;
+    this.remainingText.setText(`Board: ${remainingOnBoard}`);
+    this.slotText.setText(`Slot: ${this.slotTiles.length}/${slotCapacity}${slotDeltaLabel}`);
+  }
+
+  private pushUndoSnapshot(): void {
+    const snapshot: RoundSnapshot = {
+      taps: this.taps,
+      matchedTiles: this.matchedTiles,
+      combo: this.combo,
+      maxCombo: this.maxCombo,
+      statusMessage: this.statusText.text,
+      tileStates: this.tiles.map((tile) => ({
+        id: tile.id,
+        state: tile.state
+      })),
+      slotOrder: this.slotTiles.map((tile) => tile.id)
+    };
+
+    this.undoStack.push(snapshot);
+    if (this.undoStack.length > MAX_UNDO_STACK) {
+      this.undoStack.shift();
+    }
+  }
+
+  private undoLastMove(): void {
+    if (this.roundOver) {
+      return;
+    }
+
+    const snapshot = this.undoStack.pop();
+    if (!snapshot) {
+      this.statusText.setText("No move to undo");
+      return;
+    }
+
+    for (const tile of this.tiles) {
+      this.tweens.killTweensOf(tile.card);
+    }
+
+    this.taps = snapshot.taps;
+    this.matchedTiles = snapshot.matchedTiles;
+    this.combo = snapshot.combo;
+    this.maxCombo = snapshot.maxCombo;
+
+    const stateById = new Map(snapshot.tileStates.map((item) => [item.id, item.state]));
+    for (const tile of this.tiles) {
+      const state = stateById.get(tile.id) ?? tile.state;
+      this.applyTileState(tile, state);
+    }
+
+    const tileById = new Map(this.tiles.map((tile) => [tile.id, tile]));
+    this.slotTiles = snapshot.slotOrder
+      .map((tileId) => tileById.get(tileId))
+      .filter((tile): tile is TileEntity => {
+        if (!tile) {
+          return false;
+        }
+        return tile.state === "slot";
+      });
+
+    this.layoutSlotTiles(0);
+    this.refreshBoardState();
+    this.statusText.setText(snapshot.statusMessage || "Match 3 same tiles");
+    this.syncNearFailLatch();
+  }
+
+  private applyTileState(tile: TileEntity, state: TileState): void {
+    tile.state = state;
+
+    if (state === "board") {
+      tile.card.setVisible(true);
+      tile.card.setActive(true);
+      tile.card.setAlpha(1);
+      tile.card.setScale(1);
+      tile.card.setPosition(
+        BOARD_ORIGIN_X + tile.placement.col * BOARD_COL_GAP,
+        BOARD_ORIGIN_Y + tile.placement.row * BOARD_ROW_GAP
+      );
+      tile.card.setDepth(80 + tile.placement.layer * 16 + tile.placement.row);
+      if (tile.card.input) {
+        tile.card.input.enabled = true;
+      } else {
+        tile.card.setInteractive({ useHandCursor: true });
+      }
+      tile.body.setFillStyle(tile.kind.color, 0.97);
+      tile.body.setStrokeStyle(2, 0x0f172a, 0.6);
+      tile.label.setColor("#0f172a");
+      tile.label.setAlpha(1);
+      return;
+    }
+
+    if (state === "slot") {
+      tile.card.setVisible(true);
+      tile.card.setActive(true);
+      tile.card.setAlpha(1);
+      tile.card.setScale(0.86);
+      tile.card.disableInteractive();
+      tile.body.setFillStyle(tile.kind.color, 0.96);
+      tile.body.setStrokeStyle(2, 0x0f172a, 0.8);
+      tile.label.setColor("#111827");
+      tile.label.setAlpha(1);
+      return;
+    }
+
+    tile.card.setVisible(false);
+    tile.card.setActive(false);
+    tile.card.setScale(0.2);
+    tile.card.setAlpha(0);
+    tile.card.disableInteractive();
+  }
+
+  private isTileBlocked(tile: TileEntity): boolean {
+    if (tile.state !== "board") {
+      return false;
+    }
+
+    for (const other of this.tiles) {
+      if (other.state !== "board" || other.placement.layer <= tile.placement.layer) {
+        continue;
+      }
+
+      const overlapX = Math.abs(other.placement.col - tile.placement.col) < 1;
+      const overlapY = Math.abs(other.placement.row - tile.placement.row) < 1;
+      if (overlapX && overlapY) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private checkRoundEnd(): void {
+    if (this.roundOver) {
+      return;
+    }
+
+    if (this.matchedTiles >= this.tiles.length) {
+      this.finishRound(true, "All tiles cleared.");
+      return;
+    }
+
+    if (this.slotTiles.length >= this.getSlotCapacity()) {
+      if (this.consumeIgnoreOverflowShield()) {
+        return;
+      }
+      this.finishRound(false, "Slot bar is full.");
+    }
+  }
+
+  private finishRound(win: boolean, reason: string): void {
+    this.roundOver = true;
+    this.bus.emit(CORE_EVENTS.ROUND_END, {
+      result: win ? "win" : "lose",
+      maxCombo: this.maxCombo,
+      elapsedMs: this.getRoundElapsedMs()
+    });
+    for (const tile of this.tiles) {
+      if (tile.state === "board") {
+        tile.card.disableInteractive();
+      }
+    }
+
+    this.statusText.setText(win ? "Level complete" : "No space left");
+    const nextLevelId = win ? getNextLevelId(this.level.id) : null;
+    const payload: RoundResultData = {
+      win,
+      reason,
+      levelId: this.level.id,
+      levelName: this.level.name,
+      levelNumber: this.levelNumber,
+      totalLevels: LEVELS.length,
+      nextLevelId: nextLevelId ?? undefined,
+      taps: this.taps,
+      matchedTiles: this.matchedTiles
+    };
+
+    this.time.delayedCall(500, () => {
+      this.scene.start("ResultScene", payload);
+    });
+  }
+
+  private bindMetaEvents(): void {
+    this.bus.on(META_EVENTS.COMMAND, this.handleMetaCommand, this);
+  }
+
+  private unbindMetaEvents(): void {
+    this.bus.off(META_EVENTS.COMMAND, this.handleMetaCommand, this);
+  }
+
+  private launchMetaOverlay(): void {
+    if (this.scene.isActive("MetaOverlayScene")) {
+      this.scene.stop("MetaOverlayScene");
+    }
+    this.scene.launch("MetaOverlayScene");
+    this.scene.bringToTop("MetaOverlayScene");
+  }
+
+  private handleShutdown(): void {
+    this.unbindMetaEvents();
+    if (this.scene.isActive("MetaOverlayScene")) {
+      this.scene.stop("MetaOverlayScene");
+    }
+  }
+
+  private readonly handleMetaCommand = (command?: MetaCommand): void => {
+    if (!command || this.roundOver) {
+      return;
+    }
+
+    switch (command.type) {
+      case "meta/use-card":
+        this.applyRescueCard(command.cardId);
+        this.bus.emit(CORE_EVENTS.CARD_USED, { cardId: command.cardId });
+        break;
+      case "meta/clear-tray":
+        this.clearSlotTiles(command.count, "Twist cleared tray slots.");
+        break;
+      case "meta/modify-core":
+        if (command.key === "overflowSlots") {
+          this.applyOverflowSlotModifier(command.amount, command.durationMs);
+        }
+        break;
+      case "meta/ignore-next-miss":
+        this.ignoreOverflowArmed = true;
+        this.ignoreOverflowExpiresAtMs = this.getRoundElapsedMs() + command.durationMs;
+        this.statusText.setText("Twist active: next overflow will be ignored.");
+        break;
+      default:
+        break;
+    }
+
+    this.refreshBoardState();
+    this.emitNearFailIfNeeded();
+    this.checkRoundEnd();
+  };
+
+  private applyRescueCard(cardId: RescueCardId): void {
+    if (cardId === "rewind-step") {
+      this.undoLastMove();
+      this.statusText.setText("Rescue: rewind one move.");
+      return;
+    }
+
+    if (cardId === "wild-pair") {
+      const removed = this.clearSlotTiles(1, "Rescue: Wild Pair removed 1 tray tile.");
+      if (removed === 0) {
+        this.statusText.setText("Rescue: Wild Pair had no tray tile.");
+      }
+      return;
+    }
+
+    this.applyOverflowSlotModifier(1, RESCUE_OVERFLOW_DURATION_MS);
+    this.statusText.setText("Rescue: +1 slot for 10s.");
+  }
+
+  private applyOverflowSlotModifier(amount: number, durationMs?: number): void {
+    if (amount === 0) {
+      return;
+    }
+
+    this.overflowSlotsDelta = Phaser.Math.Clamp(this.overflowSlotsDelta + amount, -2, 2);
+    if (durationMs && durationMs > 0) {
+      this.overflowSlotsExpiresAtMs = this.getRoundElapsedMs() + durationMs;
+    } else {
+      this.overflowSlotsExpiresAtMs = 0;
+    }
+  }
+
+  private clearSlotTiles(count: number, reason: string): number {
+    if (count <= 0 || this.slotTiles.length === 0) {
+      return 0;
+    }
+
+    const removeCount = Math.min(count, this.slotTiles.length);
+    const removedTiles = this.slotTiles.splice(this.slotTiles.length - removeCount, removeCount);
+    for (const tile of removedTiles) {
+      tile.state = "removed";
+      this.matchedTiles += 1;
+      tile.card.disableInteractive();
+      this.tweens.add({
+        targets: tile.card,
+        scaleX: 0.2,
+        scaleY: 0.2,
+        alpha: 0,
+        duration: 150,
+        ease: "Back.easeIn",
+        onComplete: () => {
+          tile.card.setVisible(false);
+          tile.card.setActive(false);
+        }
+      });
+    }
+
+    this.layoutSlotTiles(100);
+    this.statusText.setText(reason);
+    return removeCount;
+  }
+
+  private emitPlayerAction(matched: boolean): void {
+    this.bus.emit(CORE_EVENTS.PLAYER_ACTION, {
+      trayFillRatio: this.getTrayFillRatio(),
+      matched,
+      combo: this.combo,
+      timestampMs: this.getRoundElapsedMs()
+    });
+  }
+
+  private emitNearFailIfNeeded(): void {
+    const freeSlots = this.getSlotCapacity() - this.slotTiles.length;
+    if (freeSlots > 1) {
+      this.nearFailLatched = false;
+      return;
+    }
+
+    if (this.nearFailLatched) {
+      return;
+    }
+
+    this.nearFailLatched = true;
+    this.bus.emit(CORE_EVENTS.NEAR_FAIL, {
+      freeSlots,
+      trayFillRatio: this.getTrayFillRatio(),
+      timestampMs: this.getRoundElapsedMs()
+    });
+  }
+
+  private syncNearFailLatch(): void {
+    this.nearFailLatched = this.getSlotCapacity() - this.slotTiles.length <= 1;
+  }
+
+  private getTrayFillRatio(): number {
+    return Phaser.Math.Clamp(this.slotTiles.length / this.getSlotCapacity(), 0, 1);
+  }
+
+  private getSlotCapacity(): number {
+    return Math.max(MIN_SLOT_CAPACITY, SLOT_CAPACITY + this.getActiveOverflowDelta());
+  }
+
+  private getActiveOverflowDelta(): number {
+    if (this.overflowSlotsDelta === 0) {
+      return 0;
+    }
+    if (
+      this.overflowSlotsExpiresAtMs > 0 &&
+      this.getRoundElapsedMs() >= this.overflowSlotsExpiresAtMs
+    ) {
+      this.overflowSlotsDelta = 0;
+      this.overflowSlotsExpiresAtMs = 0;
+    }
+    return this.overflowSlotsDelta;
+  }
+
+  private consumeIgnoreOverflowShield(): boolean {
+    if (!this.ignoreOverflowArmed) {
+      return false;
+    }
+    if (
+      this.ignoreOverflowExpiresAtMs > 0 &&
+      this.getRoundElapsedMs() > this.ignoreOverflowExpiresAtMs
+    ) {
+      this.ignoreOverflowArmed = false;
+      this.ignoreOverflowExpiresAtMs = 0;
+      return false;
+    }
+
+    this.ignoreOverflowArmed = false;
+    this.ignoreOverflowExpiresAtMs = 0;
+    this.statusText.setText("Twist shield used: overflow ignored once.");
+    return true;
+  }
+
+  private getRoundElapsedMs(): number {
+    return Math.max(0, this.time.now - this.roundStartAtMs);
+  }
+}

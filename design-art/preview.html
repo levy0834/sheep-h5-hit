@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>sheep-h5-hit design art preview</title>
+    <link rel="stylesheet" href="./design-system.css" />
+  </head>
+  <body>
+    <main class="magic-page">
+      <header class="brand-head">
+        <p class="sticker">3 秒上头</p>
+        <h1 class="brand-mark">咩咒爆了</h1>
+        <p class="tagline">魔法羊牌 · 点三消一 · 失败也想再来一局</p>
+      </header>
+
+      <section class="glass-panel">
+        <h2 class="panel-title">首页风格</h2>
+        <p class="panel-copy">目标是 10 秒读懂机制，按钮有“按下去就开局”的弹性感。</p>
+        <div class="btn-row">
+          <button class="btn-magic" type="button">立刻开咩</button>
+          <button class="btn-ghost" type="button">翻盘秘籍</button>
+        </div>
+      </section>
+
+      <section class="hud-bar" aria-label="HUD 预览">
+        <article class="hud-pill">
+          <span class="hud-label">剩余时间</span>
+          <span class="hud-value">00:26</span>
+        </article>
+        <article class="hud-pill">
+          <span class="hud-label">连击</span>
+          <span class="hud-value">x5</span>
+        </article>
+        <article class="hud-pill">
+          <span class="hud-label">魔法值</span>
+          <span class="hud-value">72%</span>
+        </article>
+      </section>
+
+      <section class="glass-panel">
+        <div class="panel-top">
+          <h2 class="panel-title">牌面视觉</h2>
+          <span class="sticker sticker--small">轻资源</span>
+        </div>
+        <p class="panel-copy">通过底色 + emoji 占位即可完成早期可玩验证，后续可逐步替换贴图。</p>
+        <div class="tile-grid" role="grid" aria-label="tile style preview">
+          <button class="tile" type="button"><span class="tile-icon">🐑</span><span class="tile-tag">普通</span></button>
+          <button class="tile tile--rare" type="button"><span class="tile-icon">✨</span><span class="tile-tag">稀有</span></button>
+          <button class="tile" type="button"><span class="tile-icon">🪄</span><span class="tile-tag">道具</span></button>
+          <button class="tile tile--locked" type="button"><span class="tile-icon">🔒</span><span class="tile-tag">锁定</span></button>
+          <button class="tile" type="button"><span class="tile-icon">🌙</span><span class="tile-tag">夜咩</span></button>
+          <button class="tile" type="button"><span class="tile-icon">🍀</span><span class="tile-tag">幸运</span></button>
+          <button class="tile tile--rare" type="button"><span class="tile-icon">💥</span><span class="tile-tag">爆梗</span></button>
+          <button class="tile" type="button"><span class="tile-icon">🫧</span><span class="tile-tag">泡泡</span></button>
+        </div>
+      </section>
+
+      <section class="result-stack" aria-label="result mood preview">
+        <article class="result-card result-card--win">
+          <h3>胜利页情绪: 爽感兑现</h3>
+          <p>大字标题 + 夸张数值 + 分享文案，强化“我居然过了”的炫耀冲动。</p>
+          <div class="result-meta">
+            <span class="result-chip">今日击败 98%</span>
+            <span class="result-chip">连击高光 x9</span>
+          </div>
+        </article>
+
+        <article class="result-card result-card--fail">
+          <h3>失败页情绪: 气笑但想再来</h3>
+          <p>给失败做梗化包装，搭配一句“差一步翻盘”，把挫败转成再开一局。</p>
+          <div class="result-meta">
+            <span class="result-chip">差 1 张通关</span>
+            <span class="result-chip">继续咩一次</span>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

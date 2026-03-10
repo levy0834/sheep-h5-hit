@@ -1,0 +1,88 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      app_ready: ${{ steps.detect.outputs.app_ready }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect app scaffold
+        id: detect
+        run: |
+          if [ -f package.json ]; then
+            echo "app_ready=true" >> "$GITHUB_OUTPUT"
+            echo "package.json found. Build/deploy will run."
+          else
+            echo "app_ready=false" >> "$GITHUB_OUTPUT"
+            echo "package.json not found. Build/deploy will be skipped."
+          fi
+
+      - name: Setup Node.js
+        if: steps.detect.outputs.app_ready == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.detect.outputs.app_ready == 'true'
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Build project
+        if: steps.detect.outputs.app_ready == 'true'
+        env:
+          VITE_BASE_PATH: /${{ github.event.repository.name }}/
+        run: npm run build
+
+      - name: Setup Pages
+        if: steps.detect.outputs.app_ready == 'true'
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        if: steps.detect.outputs.app_ready == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    if: needs.build.outputs.app_ready == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  no-app-scaffold:
+    needs: build
+    if: needs.build.outputs.app_ready != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report skipped deploy
+        run: echo "No app scaffold in this branch yet. Deployment intentionally skipped."
