@@ -7,6 +7,7 @@
 - [ ] `npm run build` 成功且无报错
 - [ ] 产物目录 `dist/` 存在并包含 `index.html`
 - [ ] 关键静态资源可以从 Pages 子路径正确加载（无 404）
+- [ ] 首页首次进入的 gameplay 懒加载可完成，预热后再次点击 `START` 不出现白屏或重复场景注册报错
 
 ## 2) Core Gameplay Smoke
 - [ ] 可从首页进入游戏

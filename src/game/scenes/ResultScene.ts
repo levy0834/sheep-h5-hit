@@ -23,12 +23,14 @@ const defaultResult: RoundResultData = {
 
 export class ResultScene extends Phaser.Scene {
   private result: RoundResultData = defaultResult;
+  private transitionLocked = false;
 
   public constructor() {
     super("ResultScene");
   }
 
   public init(data: RoundResultData): void {
+    this.transitionLocked = false;
     this.result = {
       ...defaultResult,
       ...data
@@ -230,18 +232,47 @@ export class ResultScene extends Phaser.Scene {
         fontStyle: "bold"
       })
       .setOrigin(0.5);
+    let locked = false;
+
+    const releaseLock = () => {
+      locked = false;
+      body.setScale(1);
+      text.setScale(1);
+    };
 
     body.on("pointerover", () => body.setAlpha(1));
     body.on("pointerout", () => body.setAlpha(0.98));
     body.on("pointerdown", () => {
-      body.disableInteractive();
+      if (locked || this.transitionLocked) {
+        return;
+      }
+
+      locked = true;
+      this.transitionLocked = true;
       this.tweens.add({
         targets: [body, text],
         scaleX: 0.95,
         scaleY: 0.95,
         duration: 80,
         yoyo: true,
-        onComplete: onClick
+        onComplete: () => {
+          releaseLock();
+          if (!this.sys.isActive()) {
+            return;
+          }
+          try {
+            onClick();
+          } catch (error) {
+            this.transitionLocked = false;
+            console.error(`Result button "${label}" action failed:`, error);
+          }
+        },
+        onStop: () => {
+          releaseLock();
+          if (this.sys.isActive()) {
+            this.transitionLocked = false;
+          }
+        }
       });
     });
   }

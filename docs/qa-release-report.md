@@ -46,3 +46,37 @@
 2. 执行 `docs/qa-checklist.md` 全量检查并记录结果。
 3. 触发 `Deploy to GitHub Pages`，拿到可分享试玩链接。
 4. 回填最终线上地址和真机验证结果到本报告。
+
+## 2026-03-10 Update
+
+### What changed
+- 启用了首页到 gameplay scene 的按需加载，只在点击 `START` 或首页预热时加载 `GameScene`、`ResultScene`、`MetaOverlayScene`。
+- 强化了场景注册逻辑：若预热/重试过程中已存在 scene，不再重复注册，避免 duplicate key 崩溃。
+- 首页新增轻量预热，降低首局首次点击后的等待感。
+- 修复按钮交互锁死问题：`GameScene` 的 `Undo` 按钮和首页/结果页按钮点击后会在当前 scene 仍存活时恢复交互，不再变成一次性按钮。
+- 更新 `docs/qa-checklist.md`，补充懒加载启动路径的专项检查项。
+
+### Validation evidence
+- `npm run build` 成功。
+- 产物包含：
+  - `dist/index.html`
+  - `dist/assets/GameScene-*.js`
+  - `dist/assets/ResultScene-*.js`
+  - `dist/assets/MetaOverlayScene-*.js`
+- 构建结果确认首页入口已通过动态 `import()` 引用 gameplay chunks，而非把 gameplay 逻辑全部并入首页逻辑包。
+- 当前构建体积（minified）：
+  - `dist/assets/index-*.js` ≈ `1,216.60 kB`
+  - `dist/assets/GameScene-*.js` ≈ `14.59 kB`
+  - `dist/assets/MetaOverlayScene-*.js` ≈ `14.86 kB`
+  - `dist/assets/ResultScene-*.js` ≈ `4.41 kB`
+- 当前仍无法在本环境内完成真实触控/手机浏览器人工回归，因此移动端与微信实机项仍未闭环。
+
+### Current release risks
+- Phaser runtime 仍然使首页主入口 chunk 偏大；虽然 gameplay 已拆分，但首屏 JS 体积仍是主要性能风险。
+- GitHub Pages 线上链路、子路径资源加载、以及真机首屏耗时尚未做最终烟测。
+- iOS Safari / Android Chrome / 微信内置浏览器的触控与安全区表现仍缺实机验证。
+
+### Recommended next steps
+1. 在本机浏览器做一轮首页预热 + `START` 进入 + `Undo` 连续点击的手玩回归。
+2. 触发 GitHub Pages 部署并验证子路径加载与移动端首屏。
+3. 若首屏加载仍偏慢，再单独处理 Phaser vendor 体积优化。

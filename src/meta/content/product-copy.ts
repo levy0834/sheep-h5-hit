@@ -4,6 +4,9 @@ export const PRODUCT_COPY = {
     subtitle: "Pressure spikes can unlock clutch twists. Risky choices create bigger comebacks.",
     primaryCta: "Start Round",
     secondaryCta: "How Comeback Works",
+    loadingCta: "Loading gameplay runtime...",
+    readyCta: "Gameplay ready. Tap START.",
+    retryCta: "Load failed. Tap START to retry.",
     coreRules: [
       "Tap only free tiles (not blocked).",
       "Match 3 identical tiles in tray.",

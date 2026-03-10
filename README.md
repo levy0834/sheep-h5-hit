@@ -42,9 +42,10 @@ npm run preview -- --host
 
 `vite.config.ts` 中 `base` 解析顺序：
 
-1. `VITE_BASE_PATH`
-2. GitHub Actions 自动回退到 `/<repo-name>/`
-3. 本地默认 `/`
+1. `VITE_BASE_PATH`（显式覆盖）
+2. GitHub Actions（build/preview）自动回退到 `/<repo-name>/`
+3. 本地 build/preview 默认 `./`（相对路径，便于子路径与静态预览）
+4. 本地 dev 默认 `/`
 
 ## 文档
 

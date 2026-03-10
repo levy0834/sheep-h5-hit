@@ -54,10 +54,12 @@ const MIN_OVERFLOW_SLOTS_DELTA = -2;
 const SLOT_MAX_SPAN = 312;
 const SLOT_MARKER_RADIUS = 14;
 const RESCUE_OVERFLOW_DURATION_MS = 10_000;
+const CONTROL_BUTTON_DEPTH = 920;
 
 export class GameScene extends Phaser.Scene {
   private level: LevelDefinition = LEVELS[0];
   private levelNumber = 1;
+  private topControlTransitionLocked = false;
   private tiles: TileEntity[] = [];
   private slotTiles: TileEntity[] = [];
   private undoStack: RoundSnapshot[] = [];
@@ -90,6 +92,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   public init(data: GameSceneData): void {
+    this.topControlTransitionLocked = false;
     this.tiles = [];
     this.slotTiles = [];
     this.undoStack = [];
@@ -172,11 +175,16 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(0, 0.5);
 
     this.statusText = this.add
-      .text(width / 2, 690, "Match 3 same tiles", {
+      .text(
+        width / 2,
+        690,
+        this.getDefaultStatusMessage(),
+        {
         fontFamily: "Trebuchet MS",
         fontSize: "24px",
         color: "#f1f5f9"
-      })
+        }
+      )
       .setOrigin(0.5);
   }
 
@@ -196,10 +204,16 @@ export class GameScene extends Phaser.Scene {
   }
 
   private drawTopControls(): void {
-    this.createMiniButton(56, 158, 84, 42, "Home", () => this.scene.start("StartScene"));
+    this.createMiniButton(56, 158, 84, 42, "Home", () => this.scene.start("StartScene"), true);
     this.createMiniButton(194, 158, 92, 42, "Undo", () => this.undoLastMove());
-    this.createMiniButton(332, 158, 104, 42, "Restart", () =>
-      this.scene.restart({ levelId: this.level.id })
+    this.createMiniButton(
+      332,
+      158,
+      104,
+      42,
+      "Restart",
+      () => this.scene.restart({ levelId: this.level.id }),
+      true
     );
   }
 
@@ -209,12 +223,14 @@ export class GameScene extends Phaser.Scene {
     w: number,
     h: number,
     label: string,
-    onClick: () => void
+    onClick: () => void,
+    locksSceneTransition = false
   ): void {
     const button = this.add
       .rectangle(x, y, w, h, 0x1e293b, 0.95)
       .setStrokeStyle(2, 0x94a3b8, 0.85)
-      .setInteractive({ useHandCursor: true });
+      .setInteractive({ useHandCursor: true })
+      .setDepth(CONTROL_BUTTON_DEPTH);
 
     const text = this.add
       .text(x, y, label, {
@@ -223,19 +239,53 @@ export class GameScene extends Phaser.Scene {
         color: "#e2e8f0",
         fontStyle: "bold"
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setDepth(CONTROL_BUTTON_DEPTH + 1);
+    let locked = false;
+
+    const releaseLock = () => {
+      locked = false;
+      button.setScale(1);
+      text.setScale(1);
+    };
 
     button.on("pointerover", () => button.setFillStyle(0x334155, 1));
     button.on("pointerout", () => button.setFillStyle(0x1e293b, 0.95));
     button.on("pointerdown", () => {
-      button.disableInteractive();
+      if (locked || this.topControlTransitionLocked) {
+        return;
+      }
+
+      locked = true;
+      if (locksSceneTransition) {
+        this.topControlTransitionLocked = true;
+      }
       this.tweens.add({
         targets: [button, text],
         scaleX: 0.94,
         scaleY: 0.94,
         duration: 75,
         yoyo: true,
-        onComplete: onClick
+        onComplete: () => {
+          releaseLock();
+          if (!this.sys.isActive()) {
+            return;
+          }
+          try {
+            onClick();
+          } catch (error) {
+            if (locksSceneTransition) {
+              this.topControlTransitionLocked = false;
+            }
+            console.error(`Top control action "${label}" failed:`, error);
+          }
+        },
+        onStop: () => {
+          releaseLock();
+          if (locksSceneTransition && this.sys.isActive()) {
+            this.topControlTransitionLocked = false;
+          }
+        }
       });
     });
   }
@@ -289,6 +339,7 @@ export class GameScene extends Phaser.Scene {
 
     if (this.isTileBlocked(tile)) {
       this.bounceBlocked(tile);
+      this.statusText.setText("Blocked tile. Clear tiles above first.");
       this.combo = 0;
       this.emitPlayerAction(false);
       return;
@@ -395,7 +446,7 @@ export class GameScene extends Phaser.Scene {
       this.statusText.setText("Matched 3. Keep chaining.");
       this.layoutSlotTiles(110);
     } else {
-      this.statusText.setText("Match 3 same tiles");
+      this.statusText.setText(this.getDefaultStatusMessage());
     }
     return removedCount;
   }
@@ -491,8 +542,14 @@ export class GameScene extends Phaser.Scene {
 
     this.layoutSlotTiles(0);
     this.refreshBoardState();
-    this.statusText.setText(snapshot.statusMessage || "Match 3 same tiles");
+    this.statusText.setText(snapshot.statusMessage || this.getDefaultStatusMessage());
     this.syncNearFailLatch();
+  }
+
+  private getDefaultStatusMessage(): string {
+    return this.levelNumber === 1
+      ? "Tip: bright tiles are tappable. Dim tiles are blocked."
+      : "Match 3 same tiles";
   }
 
   private applyTileState(tile: TileEntity, state: TileState): void {
