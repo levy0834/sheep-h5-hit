@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { LEVELS } from "../levels";
+import { PRODUCT_COPY } from "../../meta/content/product-copy";
 
 export class StartScene extends Phaser.Scene {
   public constructor() {
@@ -8,46 +9,88 @@ export class StartScene extends Phaser.Scene {
 
   public create(): void {
     const { width, height } = this.scale;
+    const startCopy = PRODUCT_COPY.start;
 
     const bg = this.add.graphics();
     bg.fillGradientStyle(0x0f172a, 0x0f172a, 0x1d4ed8, 0x1d4ed8, 1);
     bg.fillRect(0, 0, width, height);
 
     this.add
-      .text(width / 2, 130, "SHEEP HIT", {
+      .text(width / 2, 78, "SHEEP HIT", {
         fontFamily: "Trebuchet MS",
-        fontSize: "52px",
+        fontSize: "48px",
         color: "#f8fafc",
         fontStyle: "bold"
       })
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, 206, `Prototype Core Loop · ${LEVELS.length} Levels`, {
+      .text(width / 2, 136, startCopy.title, {
         fontFamily: "Trebuchet MS",
-        fontSize: "22px",
-        color: "#cbd5e1"
+        fontSize: "32px",
+        color: "#f8fafc",
+        fontStyle: "bold"
       })
       .setOrigin(0.5);
 
     this.add
-      .text(
-        width / 2,
-        322,
-        "Tap free tiles. Match 3 same tiles.\nUse Undo to recover one bad pick.\nClear all tiles before slot reaches 7.",
-        {
-          fontFamily: "Trebuchet MS",
-          fontSize: "24px",
-          color: "#e2e8f0",
-          align: "center",
-          lineSpacing: 12
-        }
-      )
+      .text(width / 2, 204, `${startCopy.subtitle}\n${LEVELS.length} playable levels in prototype.`, {
+        fontFamily: "Trebuchet MS",
+        fontSize: "20px",
+        color: "#cbd5e1"
+      })
+      .setAlign("center")
+      .setWordWrapWidth(332)
       .setOrigin(0.5);
 
-    this.createButton(width / 2, 520, 248, 76, "START", () => {
+    this.createGuidePanel(width / 2, 372, 340, 176, "CORE RULES", startCopy.coreRules);
+    this.createGuidePanel(width / 2, 574, 340, 176, "META LOOP TIPS", startCopy.metaHints);
+
+    this.add
+      .text(width / 2, 684, startCopy.secondaryCta, {
+        fontFamily: "Trebuchet MS",
+        fontSize: "20px",
+        color: "#bfdbfe",
+        fontStyle: "bold"
+      })
+      .setOrigin(0.5);
+
+    this.createButton(width / 2, 752, 286, 76, startCopy.primaryCta.toUpperCase(), () => {
       this.scene.start("GameScene", { levelId: LEVELS[0].id });
     });
+  }
+
+  private createGuidePanel(
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    title: string,
+    items: readonly string[]
+  ): void {
+    this.add
+      .rectangle(x, y, w, h, 0x0b1225, 0.72)
+      .setStrokeStyle(2, 0x60a5fa, 0.55);
+
+    this.add
+      .text(x - w / 2 + 14, y - h / 2 + 14, title, {
+        fontFamily: "Trebuchet MS",
+        fontSize: "22px",
+        color: "#f8fafc",
+        fontStyle: "bold"
+      })
+      .setOrigin(0, 0);
+
+    const lines = items.map((item, index) => `${index + 1}. ${item}`).join("\n");
+    this.add
+      .text(x - w / 2 + 14, y - h / 2 + 50, lines, {
+        fontFamily: "Trebuchet MS",
+        fontSize: "16px",
+        color: "#e2e8f0",
+        lineSpacing: 5
+      })
+      .setWordWrapWidth(w - 28)
+      .setOrigin(0, 0);
   }
 
   private createButton(

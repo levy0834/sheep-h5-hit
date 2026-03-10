@@ -29,4 +29,12 @@ export interface RoundResultData {
   nextLevelId?: string;
   taps: number;
   matchedTiles: number;
+  maxCombo: number;
+  elapsedMs: number;
+  nearFailCount: number;
+  rescueCardsUsed: number;
+  rescueCardsGranted: number;
+  twistCount: number;
+  comebackChain: number;
+  overflowShieldSaves: number;
 }

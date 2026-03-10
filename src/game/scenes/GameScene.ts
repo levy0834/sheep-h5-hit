@@ -66,6 +66,12 @@ export class GameScene extends Phaser.Scene {
   private matchedTiles = 0;
   private combo = 0;
   private maxCombo = 0;
+  private nearFailCount = 0;
+  private rescueCardsUsed = 0;
+  private rescueCardsGranted = 0;
+  private twistCount = 0;
+  private comebackChain = 0;
+  private overflowShieldSaves = 0;
   private nearFailLatched = false;
   private roundStartAtMs = 0;
   private overflowSlotsDelta = 0;
@@ -92,6 +98,12 @@ export class GameScene extends Phaser.Scene {
     this.matchedTiles = 0;
     this.combo = 0;
     this.maxCombo = 0;
+    this.nearFailCount = 0;
+    this.rescueCardsUsed = 0;
+    this.rescueCardsGranted = 0;
+    this.twistCount = 0;
+    this.comebackChain = 0;
+    this.overflowShieldSaves = 0;
     this.nearFailLatched = false;
     this.roundStartAtMs = 0;
     this.overflowSlotsDelta = 0;
@@ -589,7 +601,15 @@ export class GameScene extends Phaser.Scene {
       totalLevels: LEVELS.length,
       nextLevelId: nextLevelId ?? undefined,
       taps: this.taps,
-      matchedTiles: this.matchedTiles
+      matchedTiles: this.matchedTiles,
+      maxCombo: this.maxCombo,
+      elapsedMs: this.getRoundElapsedMs(),
+      nearFailCount: this.nearFailCount,
+      rescueCardsUsed: this.rescueCardsUsed,
+      rescueCardsGranted: this.rescueCardsGranted,
+      twistCount: this.twistCount,
+      comebackChain: this.comebackChain,
+      overflowShieldSaves: this.overflowShieldSaves
     };
 
     this.time.delayedCall(500, () => {
@@ -626,7 +646,15 @@ export class GameScene extends Phaser.Scene {
     }
 
     switch (command.type) {
+      case "meta/show-twist":
+        this.twistCount += 1;
+        this.statusText.setText("Chaos Twist unlocked. Pick fast.");
+        break;
+      case "meta/grant-card":
+        this.rescueCardsGranted += 1;
+        break;
       case "meta/use-card":
+        this.rescueCardsUsed += 1;
         this.applyRescueCard(command.cardId);
         this.bus.emit(CORE_EVENTS.CARD_USED, { cardId: command.cardId });
         break;
@@ -642,6 +670,9 @@ export class GameScene extends Phaser.Scene {
         this.ignoreOverflowArmed = true;
         this.ignoreOverflowExpiresAtMs = this.getRoundElapsedMs() + command.durationMs;
         this.statusText.setText("Twist active: next overflow will be ignored.");
+        break;
+      case "meta/comeback-chain":
+        this.comebackChain = Math.max(this.comebackChain, command.value);
         break;
       default:
         break;
@@ -743,6 +774,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.nearFailLatched = true;
+    this.nearFailCount += 1;
     this.bus.emit(CORE_EVENTS.NEAR_FAIL, {
       freeSlots,
       trayFillRatio: this.getTrayFillRatio(),
@@ -859,6 +891,7 @@ export class GameScene extends Phaser.Scene {
 
     this.ignoreOverflowArmed = false;
     this.ignoreOverflowExpiresAtMs = 0;
+    this.overflowShieldSaves += 1;
     this.statusText.setText("Twist shield used: overflow ignored once.");
     return true;
   }

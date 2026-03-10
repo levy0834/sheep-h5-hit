@@ -4,6 +4,16 @@ export const PRODUCT_COPY = {
     subtitle: "Pressure spikes can unlock clutch twists. Risky choices create bigger comebacks.",
     primaryCta: "Start Round",
     secondaryCta: "How Comeback Works",
+    coreRules: [
+      "Tap only free tiles (not blocked).",
+      "Match 3 identical tiles in tray.",
+      "Tray at 7 loses. Clear all tiles to win.",
+    ],
+    metaHints: [
+      "Pressure spikes unlock Chaos Twist.",
+      "Rescue cards can rewind, clear, or add +1 slot.",
+      "Undo fixes one tap. Cards decide clutch rounds.",
+    ],
   },
   result: {
     win: [
@@ -21,6 +31,11 @@ export const PRODUCT_COPY = {
       "Chaos worked for you this time. Chase a longer chain.",
       "Last-slot save landed. This is worth another run.",
     ],
+    nextSteps: {
+      winHasNext: "Push into the next level while your timing is still warm.",
+      winNoNext: "You cleared all current levels. Replay for cleaner tempo and fewer taps.",
+      lose: "Run it back and spend rescue tools one beat earlier.",
+    },
   },
   share: {
     titleTemplates: [
