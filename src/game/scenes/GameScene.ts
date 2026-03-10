@@ -49,6 +49,10 @@ interface RoundSnapshot {
 
 const MAX_UNDO_STACK = 20;
 const MIN_SLOT_CAPACITY = 3;
+const MAX_OVERFLOW_SLOTS_DELTA = 2;
+const MIN_OVERFLOW_SLOTS_DELTA = -2;
+const SLOT_MAX_SPAN = 312;
+const SLOT_MARKER_RADIUS = 14;
 const RESCUE_OVERFLOW_DURATION_MS = 10_000;
 
 export class GameScene extends Phaser.Scene {
@@ -73,6 +77,7 @@ export class GameScene extends Phaser.Scene {
   private remainingText!: Phaser.GameObjects.Text;
   private slotText!: Phaser.GameObjects.Text;
   private statusText!: Phaser.GameObjects.Text;
+  private slotMarkerGraphics: any = null;
 
   public constructor() {
     super("GameScene");
@@ -116,6 +121,10 @@ export class GameScene extends Phaser.Scene {
       this.bus.emit(CORE_EVENTS.ROUND_START, { seed: Date.now() });
     });
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
+  }
+
+  public update(): void {
+    this.tickTimedModifiers();
   }
 
   private drawBackground(width: number, height: number): void {
@@ -170,11 +179,8 @@ export class GameScene extends Phaser.Scene {
       .rectangle(width / 2, SLOT_Y, 352, 128, 0x0b1225, 0.7)
       .setStrokeStyle(2, 0x64748b, 0.8);
 
-    const markerSpacing = 46;
-    const markerStartX = width / 2 - ((SLOT_CAPACITY - 1) * markerSpacing) / 2;
-    for (let i = 0; i < SLOT_CAPACITY; i += 1) {
-      this.add.circle(markerStartX + i * markerSpacing, SLOT_Y, 16, 0x1e293b, 0.8);
-    }
+    this.slotMarkerGraphics = this.add.graphics();
+    this.renderSlotMarkers();
   }
 
   private drawTopControls(): void {
@@ -307,16 +313,18 @@ export class GameScene extends Phaser.Scene {
   }
 
   private layoutSlotTiles(duration = 140): void {
-    const spacing = 46;
-    const startX = this.scale.width / 2 - ((SLOT_CAPACITY - 1) * spacing) / 2;
+    const slotCapacity = this.getSlotCapacity();
+    const spacing = this.getSlotSpacing(slotCapacity);
+    const slotScale = this.getSlotTileScale(spacing);
+    const startX = this.scale.width / 2 - ((slotCapacity - 1) * spacing) / 2;
     this.slotTiles.forEach((tile, index) => {
       const x = startX + index * spacing;
       this.tweens.add({
         targets: tile.card,
         x,
         y: SLOT_Y,
-        scaleX: 0.86,
-        scaleY: 0.86,
+        scaleX: slotScale,
+        scaleY: slotScale,
         duration,
         ease: "Cubic.Out"
       });
@@ -410,6 +418,7 @@ export class GameScene extends Phaser.Scene {
     const slotDeltaLabel = slotDelta === 0 ? "" : ` (${slotDelta > 0 ? `+${slotDelta}` : slotDelta})`;
     this.remainingText.setText(`Board: ${remainingOnBoard}`);
     this.slotText.setText(`Slot: ${this.slotTiles.length}/${slotCapacity}${slotDeltaLabel}`);
+    this.renderSlotMarkers(slotCapacity);
   }
 
   private pushUndoSnapshot(): void {
@@ -503,7 +512,7 @@ export class GameScene extends Phaser.Scene {
       tile.card.setVisible(true);
       tile.card.setActive(true);
       tile.card.setAlpha(1);
-      tile.card.setScale(0.86);
+      tile.card.setScale(this.getSlotTileScale(this.getSlotSpacing(this.getSlotCapacity())));
       tile.card.disableInteractive();
       tile.body.setFillStyle(tile.kind.color, 0.96);
       tile.body.setStrokeStyle(2, 0x0f172a, 0.8);
@@ -667,11 +676,19 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    this.overflowSlotsDelta = Phaser.Math.Clamp(this.overflowSlotsDelta + amount, -2, 2);
+    const previousCapacity = this.getSlotCapacity();
+    this.overflowSlotsDelta = Phaser.Math.Clamp(
+      this.overflowSlotsDelta + amount,
+      MIN_OVERFLOW_SLOTS_DELTA,
+      MAX_OVERFLOW_SLOTS_DELTA
+    );
     if (durationMs && durationMs > 0) {
       this.overflowSlotsExpiresAtMs = this.getRoundElapsedMs() + durationMs;
     } else {
       this.overflowSlotsExpiresAtMs = 0;
+    }
+    if (this.getSlotCapacity() !== previousCapacity && this.slotTiles.length > 0) {
+      this.layoutSlotTiles(100);
     }
   }
 
@@ -746,17 +763,85 @@ export class GameScene extends Phaser.Scene {
   }
 
   private getActiveOverflowDelta(): number {
-    if (this.overflowSlotsDelta === 0) {
+    return this.overflowSlotsDelta;
+  }
+
+  private getSlotSpacing(slotCapacity: number): number {
+    if (slotCapacity <= 1) {
       return 0;
     }
+    return Math.min(46, SLOT_MAX_SPAN / (slotCapacity - 1));
+  }
+
+  private getSlotTileScale(spacing: number): number {
+    return Phaser.Math.Clamp(spacing / TILE_WIDTH, 0.72, 0.86);
+  }
+
+  private renderSlotMarkers(slotCapacity = this.getSlotCapacity()): void {
+    if (!this.slotMarkerGraphics) {
+      return;
+    }
+
+    const spacing = this.getSlotSpacing(slotCapacity);
+    const startX = this.scale.width / 2 - ((slotCapacity - 1) * spacing) / 2;
+    this.slotMarkerGraphics.clear();
+    for (let i = 0; i < slotCapacity; i += 1) {
+      const x = startX + i * spacing;
+      const isOverflowSlot = i >= SLOT_CAPACITY;
+      const filled = i < this.slotTiles.length;
+      const fillColor = filled ? (isOverflowSlot ? 0x38bdf8 : 0xfacc15) : 0x1e293b;
+      const strokeColor = isOverflowSlot ? 0x38bdf8 : 0x64748b;
+      this.slotMarkerGraphics.fillStyle(fillColor, filled ? 0.95 : 0.8);
+      this.slotMarkerGraphics.fillCircle(x, SLOT_Y, SLOT_MARKER_RADIUS);
+      this.slotMarkerGraphics.lineStyle(2, strokeColor, isOverflowSlot ? 0.95 : 0.8);
+      this.slotMarkerGraphics.strokeCircle(x, SLOT_Y, SLOT_MARKER_RADIUS);
+    }
+  }
+
+  private tickTimedModifiers(): void {
+    if (this.roundOver) {
+      return;
+    }
+
+    const elapsedMs = this.getRoundElapsedMs();
+    const previousCapacity = this.getSlotCapacity();
+    let capacityChanged = false;
+    let shouldCheckRoundEnd = false;
+
     if (
+      this.overflowSlotsDelta !== 0 &&
       this.overflowSlotsExpiresAtMs > 0 &&
-      this.getRoundElapsedMs() >= this.overflowSlotsExpiresAtMs
+      elapsedMs >= this.overflowSlotsExpiresAtMs
     ) {
+      const expiredDelta = this.overflowSlotsDelta;
       this.overflowSlotsDelta = 0;
       this.overflowSlotsExpiresAtMs = 0;
+      capacityChanged = true;
+      shouldCheckRoundEnd = true;
+      this.statusText.setText(expiredDelta > 0 ? "Bonus slot expired." : "Slot penalty expired.");
     }
-    return this.overflowSlotsDelta;
+
+    if (
+      this.ignoreOverflowArmed &&
+      this.ignoreOverflowExpiresAtMs > 0 &&
+      elapsedMs >= this.ignoreOverflowExpiresAtMs
+    ) {
+      this.ignoreOverflowArmed = false;
+      this.ignoreOverflowExpiresAtMs = 0;
+    }
+
+    if (!capacityChanged) {
+      return;
+    }
+
+    if (this.getSlotCapacity() !== previousCapacity && this.slotTiles.length > 0) {
+      this.layoutSlotTiles(100);
+    }
+    this.refreshBoardState();
+    this.emitNearFailIfNeeded();
+    if (shouldCheckRoundEnd) {
+      this.checkRoundEnd();
+    }
   }
 
   private consumeIgnoreOverflowShield(): boolean {
@@ -765,7 +850,7 @@ export class GameScene extends Phaser.Scene {
     }
     if (
       this.ignoreOverflowExpiresAtMs > 0 &&
-      this.getRoundElapsedMs() > this.ignoreOverflowExpiresAtMs
+      this.getRoundElapsedMs() >= this.ignoreOverflowExpiresAtMs
     ) {
       this.ignoreOverflowArmed = false;
       this.ignoreOverflowExpiresAtMs = 0;
