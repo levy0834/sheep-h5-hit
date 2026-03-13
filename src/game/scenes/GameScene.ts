@@ -560,6 +560,29 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+
+  private spawnExplosion(x: number, y: number, colorHex: string = "#a3e635"): void {
+    const count = 8;
+    const colorValue = parseInt(colorHex.slice(1), 16);
+    for (let i = 0; i < count; i += 1) {
+      const angle = (Math.PI * 2 * i) / count;
+      const speed = 3 + Math.random() * 4;
+      const vx = Math.cos(angle) * speed;
+      const vy = Math.sin(angle) * speed;
+      const particle = this.add.circle(x, y, 4, 0xffffff).setTint(colorValue);
+      this.tweens.add({
+        targets: particle,
+        x: x + vx * 12,
+        y: y + vy * 12,
+        alpha: 0,
+        duration: 400,
+        ease: "Quadratic.Out",
+        onComplete: () => particle.destroy()
+      });
+    }
+  }
+
+
   private resolveMatches(): number {
     let removedAny = false;
     let removedCount = 0;

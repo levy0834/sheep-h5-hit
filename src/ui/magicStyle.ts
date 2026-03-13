@@ -330,7 +330,12 @@ export function registerMagicTextures(scene: Phaser.Scene): MagicTokens {
   }
 
   if (!scene.textures.exists(ids.tileRare)) {
+    // Glow ring first
     graphics.clear();
+    graphics.fillStyle(0xfef3b2, 0.45);
+    graphics.fillRoundedRect(1, 1, tile.width - 2, tile.height - 2, tile.radius);
+    graphics.fillStyle(0xfef3c7, 0.55);
+    graphics.fillRoundedRect(3, 3, tile.width - 6, tile.height - 6, tile.radius - 1);
     drawTileTexture(graphics, tile, { top: palette.tileRareTop, bottom: palette.tileRareBottom, rim: "#fff3cb", sparkle: "#fffce7" });
     graphics.generateTexture(ids.tileRare, tile.width, tile.height);
   }
