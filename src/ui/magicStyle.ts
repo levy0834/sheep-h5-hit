@@ -33,6 +33,18 @@ export interface MagicTokens {
     spark: string;
     glow: string;
     grain: string;
+    tileIconA: string;
+    tileIconB: string;
+    tileIconC: string;
+    tileIconD: string;
+    tileIconE: string;
+    tileIconF: string;
+    tileIconG: string;
+    tileIconH: string;
+    tileIconI: string;
+    tileIconJ: string;
+    tileIconK: string;
+    tileIconL: string;
   };
   text: {
     fontFamily: string;
@@ -75,7 +87,19 @@ const BASE_TOKENS: MagicTokens = {
     hudBadge: "magic-hud-badge",
     spark: "magic-spark",
     glow: "magic-glow",
-    grain: "magic-grain"
+    grain: "magic-grain",
+    tileIconA: "magic-icon-A",
+    tileIconB: "magic-icon-B",
+    tileIconC: "magic-icon-C",
+    tileIconD: "magic-icon-D",
+    tileIconE: "magic-icon-E",
+    tileIconF: "magic-icon-F",
+    tileIconG: "magic-icon-G",
+    tileIconH: "magic-icon-H",
+    tileIconI: "magic-icon-I",
+    tileIconJ: "magic-icon-J",
+    tileIconK: "magic-icon-K",
+    tileIconL: "magic-icon-L"
   },
   text: {
     fontFamily: '"PingFang SC", "Microsoft YaHei", sans-serif',
@@ -169,6 +193,126 @@ function drawGlowTexture(graphics: Phaser.GameObjects.Graphics, colorHex: string
   graphics.fillCircle(64, 64, 18);
 }
 
+
+function drawIconBase(graphics: Phaser.GameObjects.Graphics): void {
+  graphics.clear();
+  graphics.fillStyle(0xffffff, 0.92);
+  graphics.fillCircle(32, 32, 28);
+  graphics.lineStyle(2, 0x0f172a, 0.08);
+  graphics.strokeCircle(32, 32, 28);
+}
+
+function drawIconShape(
+  graphics: Phaser.GameObjects.Graphics,
+  kind: string,
+  colorHex: string
+): void {
+  const color = colorToInt(colorHex);
+  drawIconBase(graphics);
+  graphics.fillStyle(color, 0.92);
+  graphics.lineStyle(2, 0x0f172a, 0.12);
+
+  // Simple, bold shapes for fast recognition on mobile.
+  switch (kind) {
+    case "A": // sheep-ish: fluffy cloud
+      graphics.fillCircle(26, 32, 10);
+      graphics.fillCircle(38, 32, 10);
+      graphics.fillCircle(32, 26, 10);
+      graphics.fillCircle(32, 40, 10);
+      break;
+    case "B": // leaf
+      graphics.beginPath();
+      graphics.moveTo(20, 34);
+      graphics.quadraticCurveTo(32, 14, 44, 34);
+      graphics.quadraticCurveTo(32, 50, 20, 34);
+      graphics.closePath();
+      graphics.fillPath();
+      break;
+    case "C": // wand/star
+      graphics.fillCircle(32, 22, 6);
+      graphics.fillRect(30, 26, 4, 22);
+      break;
+    case "D": // moon
+      graphics.fillCircle(30, 32, 14);
+      graphics.fillStyle(0xffffff, 0.9);
+      graphics.fillCircle(36, 30, 12);
+      break;
+    case "E": // clover
+      graphics.fillCircle(26, 28, 8);
+      graphics.fillCircle(38, 28, 8);
+      graphics.fillCircle(26, 40, 8);
+      graphics.fillCircle(38, 40, 8);
+      graphics.fillRect(30, 40, 4, 10);
+      break;
+    case "F": // sparkle
+      graphics.beginPath();
+      graphics.moveTo(32, 14);
+      graphics.lineTo(36, 28);
+      graphics.lineTo(50, 32);
+      graphics.lineTo(36, 36);
+      graphics.lineTo(32, 50);
+      graphics.lineTo(28, 36);
+      graphics.lineTo(14, 32);
+      graphics.lineTo(28, 28);
+      graphics.closePath();
+      graphics.fillPath();
+      break;
+    case "G": // lock
+      graphics.fillRoundedRect(22, 30, 20, 18, 4);
+      graphics.fillStyle(color, 0.92);
+      graphics.lineStyle(6, color, 0.92);
+      graphics.strokeCircle(32, 28, 10);
+      graphics.fillStyle(0xffffff, 0.9);
+      graphics.fillCircle(32, 40, 3);
+      break;
+    case "H": // star
+      graphics.beginPath();
+      graphics.moveTo(32, 14);
+      graphics.lineTo(36, 26);
+      graphics.lineTo(50, 26);
+      graphics.lineTo(38, 34);
+      graphics.lineTo(42, 48);
+      graphics.lineTo(32, 40);
+      graphics.lineTo(22, 48);
+      graphics.lineTo(26, 34);
+      graphics.lineTo(14, 26);
+      graphics.lineTo(28, 26);
+      graphics.closePath();
+      graphics.fillPath();
+      break;
+    case "I": // bubble
+      graphics.fillCircle(32, 32, 14);
+      graphics.fillStyle(0xffffff, 0.45);
+      graphics.fillCircle(26, 26, 6);
+      break;
+    case "J": // burst
+      for (let i = 0; i < 8; i += 1) {
+        const ang = (Math.PI * 2 * i) / 8;
+        const x1 = 32 + Math.cos(ang) * 6;
+        const y1 = 32 + Math.sin(ang) * 6;
+        const x2 = 32 + Math.cos(ang) * 18;
+        const y2 = 32 + Math.sin(ang) * 18;
+        graphics.lineStyle(4, color, 0.92);
+        graphics.beginPath();
+        graphics.moveTo(x1, y1);
+        graphics.lineTo(x2, y2);
+        graphics.strokePath();
+      }
+      break;
+    case "K": // rainbow arc
+      graphics.lineStyle(6, color, 0.92);
+      graphics.beginPath();
+      graphics.arc(32, 38, 16, Math.PI, 0, false);
+      graphics.strokePath();
+      break;
+    case "L": // sparkle small
+    default:
+      graphics.fillCircle(32, 32, 10);
+      graphics.fillCircle(44, 28, 4);
+      graphics.fillCircle(22, 40, 4);
+      break;
+  }
+}
 function drawGrainTexture(graphics: Phaser.GameObjects.Graphics): void {
   // Lightweight film grain (generated once) for subtle premium feel.
   const g = graphics;
@@ -254,6 +398,31 @@ export function registerMagicTextures(scene: Phaser.Scene): MagicTokens {
     graphics.generateTexture(ids.grain, 128, 128);
   }
 
+
+
+  const iconDefs: Array<{ kind: string; id: string; color: string }> = [
+    { kind: "A", id: ids.tileIconA, color: "#f87171" },
+    { kind: "B", id: ids.tileIconB, color: "#fb923c" },
+    { kind: "C", id: ids.tileIconC, color: "#facc15" },
+    { kind: "D", id: ids.tileIconD, color: "#a3e635" },
+    { kind: "E", id: ids.tileIconE, color: "#34d399" },
+    { kind: "F", id: ids.tileIconF, color: "#2dd4bf" },
+    { kind: "G", id: ids.tileIconG, color: "#38bdf8" },
+    { kind: "H", id: ids.tileIconH, color: "#818cf8" },
+    { kind: "I", id: ids.tileIconI, color: "#c084fc" },
+    { kind: "J", id: ids.tileIconJ, color: "#f472b6" },
+    { kind: "K", id: ids.tileIconK, color: "#f43f5e" },
+    { kind: "L", id: ids.tileIconL, color: "#60a5fa" }
+  ];
+
+  for (const def of iconDefs) {
+    if (scene.textures.exists(def.id)) {
+      continue;
+    }
+    graphics.clear();
+    drawIconShape(graphics, def.kind, def.color);
+    graphics.generateTexture(def.id, 64, 64);
+  }
   graphics.destroy();
   return tokens;
 }

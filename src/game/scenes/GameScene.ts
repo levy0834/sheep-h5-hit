@@ -327,20 +327,25 @@ export class GameScene extends Phaser.Scene {
 
       const iconBadge = this.add
         .circle(0, -20, 15, 0xffffff, 0.94)
-        .setStrokeStyle(1, 0x0f172a, 0.08);
-
-      // Small icon on top center for quick recognition
-      const iconMap: Record<string, string> = {
-        A: "🐑", B: "🌿", C: "🪄", D: "🌙", E: "🍀",
-        F: "💫", G: "🔒", H: "⭐", I: "🫧", J: "💥",
-        K: "🌈", L: "✨"
+        .setStrokeStyle(1, 0x0f172a, 0.08);      // Icon texture (consistent across platforms; no emoji font issues)
+      const iconIdByKind: Record<string, string> = {
+        A: MAGIC_TOKENS.ids.tileIconA,
+        B: MAGIC_TOKENS.ids.tileIconB,
+        C: MAGIC_TOKENS.ids.tileIconC,
+        D: MAGIC_TOKENS.ids.tileIconD,
+        E: MAGIC_TOKENS.ids.tileIconE,
+        F: MAGIC_TOKENS.ids.tileIconF,
+        G: MAGIC_TOKENS.ids.tileIconG,
+        H: MAGIC_TOKENS.ids.tileIconH,
+        I: MAGIC_TOKENS.ids.tileIconI,
+        J: MAGIC_TOKENS.ids.tileIconJ,
+        K: MAGIC_TOKENS.ids.tileIconK,
+        L: MAGIC_TOKENS.ids.tileIconL
       };
-      const icon = iconMap[kind.id] ?? "❓";
-      const iconText = this.add
-        .text(0, -24, icon, {
-          fontFamily: "Arial",
-          fontSize: "26px"
-        })
+
+      const iconImage = this.add
+        .image(0, -2, iconIdByKind[kind.id] ?? MAGIC_TOKENS.ids.spark)
+        .setDisplaySize(TILE_WIDTH * 0.72, TILE_WIDTH * 0.72)
         .setOrigin(0.5);
 
       // Rare badge & locked marker
@@ -366,7 +371,7 @@ export class GameScene extends Phaser.Scene {
 
       if (isLocked) {
         body.setTint(0xb8c2d9);
-        iconText.setAlpha(0.35);
+        iconImage.setAlpha(0.35);
       }
 
       const label = this.add
@@ -380,7 +385,7 @@ export class GameScene extends Phaser.Scene {
         .setAlpha(0);
 
       const card = this.add
-        .container(x, y, [rareGlow, body, blockedOverlay, iconBadge, iconText, label, lockMark])
+        .container(x, y, [rareGlow, body, blockedOverlay, iconImage, label, lockMark])
         .setSize(TILE_WIDTH, TILE_HEIGHT);
       card.setDepth(80 + placement.layer * 16 + placement.row);
       card.setInteractive({ useHandCursor: true });
