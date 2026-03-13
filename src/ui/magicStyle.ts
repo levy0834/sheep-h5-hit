@@ -150,11 +150,7 @@ function drawTileTexture(
     colors.bottom
   );
 
-  graphics.lineStyle(2, colorToInt(colors.rim), 0.84);
-  graphics.strokeRoundedRect(1, 1, tile.width - 2, tile.height - 2, tile.radius);
-
-  graphics.fillStyle(colorToInt(colors.sparkle), 0.45);
-  graphics.fillCircle(tile.width * 0.24, tile.height * 0.2, 14);
+  // No explicit border / polka dots (keep it clean for mobile readability)
 
   graphics.fillStyle(0x000000, 0.08);
   graphics.fillRoundedRect(6, tile.height - 16, tile.width - 12, 8, 6);
@@ -314,17 +310,12 @@ function drawIconShape(
       break;
   }
 }
+
 function drawGrainTexture(graphics: Phaser.GameObjects.Graphics): void {
   // Lightweight film grain (generated once) for subtle premium feel.
   const g = graphics;
   g.clear();
   g.fillStyle(0xffffff, 0.06);
-  for (let i = 0; i < 260; i += 1) {
-    const x = Math.floor(Math.random() * 128);
-    const y = Math.floor(Math.random() * 128);
-    const r = 1 + Math.random() * 1.3;
-    g.fillCircle(x, y, r);
-  }
 }
 
 export function registerMagicTextures(scene: Phaser.Scene): MagicTokens {

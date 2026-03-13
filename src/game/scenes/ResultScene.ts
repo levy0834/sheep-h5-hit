@@ -78,7 +78,8 @@ export class ResultScene extends Phaser.Scene {
         fontFamily: "Trebuchet MS",
         fontSize: "16px",
         color: "#d9f7ff",
-        align: "center"
+        align: "center",
+        wordWrap: { width: Math.min(360, Math.floor(width * 0.86)) }
       })
       .setWordWrapWidth(336)
       .setOrigin(0.5);

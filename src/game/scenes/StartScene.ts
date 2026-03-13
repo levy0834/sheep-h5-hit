@@ -45,7 +45,7 @@ export class StartScene extends Phaser.Scene {
     this.add
       .text(width / 2, 84, "羊了个羊·翻盘版", {
         fontFamily: "Trebuchet MS",
-        fontSize: "46px",
+        fontSize: "42px",
         color: "#eefcff",
         fontStyle: "bold"
       })
@@ -54,7 +54,7 @@ export class StartScene extends Phaser.Scene {
     this.add
       .text(width / 2, 136, startCopy.title, {
         fontFamily: "Trebuchet MS",
-        fontSize: "30px",
+        fontSize: "28px",
         color: "#eefcff",
         fontStyle: "bold"
       })
@@ -67,7 +67,7 @@ export class StartScene extends Phaser.Scene {
         color: "#d9f7ff",
         align: "center"
       })
-      .setWordWrapWidth(320)
+      .setWordWrapWidth(Math.min(360, Math.floor(width * 0.86)))
       .setOrigin(0.5);
 
     this.createGuidePanel(width / 2, 310, 320, 130, "基础规则", startCopy.coreRules);
