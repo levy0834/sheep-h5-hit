@@ -33,7 +33,6 @@ interface TileEntity {
   state: TileState;
   card: Phaser.GameObjects.Container;
   body: Phaser.GameObjects.Image;
-  label: Phaser.GameObjects.Text;
   blockedOverlay: Phaser.GameObjects.Rectangle;
 }
 
@@ -346,7 +345,7 @@ export class GameScene extends Phaser.Scene {
 
       const iconImage = this.add
         .image(0, -2, iconIdByKind[kind.id] ?? MAGIC_TOKENS.ids.spark)
-        .setDisplaySize(TILE_WIDTH * 0.72, TILE_WIDTH * 0.72)
+        .setDisplaySize(TILE_WIDTH * 0.80, TILE_WIDTH * 0.80)
         .setOrigin(0.5);
 
       // Rare badge & locked marker
@@ -375,18 +374,9 @@ export class GameScene extends Phaser.Scene {
         iconImage.setAlpha(0.35);
       }
 
-      const label = this.add
-        .text(0, 10, kind.label, {
-          fontFamily: "Trebuchet MS",
-          fontSize: "24px",
-          fontStyle: "bold",
-          color: "#0f172a"
-        })
-        .setOrigin(0.5)
-        .setAlpha(0);
 
       const card = this.add
-        .container(x, y, [rareGlow, body, blockedOverlay, iconImage, label, lockMark])
+        .container(x, y, [rareGlow, body, blockedOverlay, iconImage, lockMark])
         .setSize(TILE_WIDTH, TILE_HEIGHT);
       card.setDepth(80 + placement.layer * 16 + placement.row);
       card.setInteractive({ useHandCursor: true });
@@ -411,8 +401,7 @@ export class GameScene extends Phaser.Scene {
         state: "board",
         card,
         body,
-        blockedOverlay,
-        label
+        blockedOverlay
       };
 
       card.on("pointerdown", () => this.onTileTapped(tile));
@@ -488,8 +477,6 @@ export class GameScene extends Phaser.Scene {
       });
       tile.card.setDepth(300 + index);
       tile.body.setTintFill(0xffffff);
-      tile.label.setColor("#111827");
-      tile.label.setAlpha(1);
     });
   }
 
@@ -556,13 +543,11 @@ export class GameScene extends Phaser.Scene {
       if (blocked) {
         tile.body.setTint(0xb8c2d9);
         tile.blockedOverlay.setFillStyle(0x0b1225, 0.42);
-        tile.label.setAlpha(0.35);
-        tile.card.disableInteractive();
+          tile.card.disableInteractive();
       } else {
         tile.body.setTintFill(0xffffff);
         tile.blockedOverlay.setFillStyle(0x0b1225, 0);
-        tile.label.setAlpha(1);
-        if (tile.card.input) {
+          if (tile.card.input) {
           tile.card.input.enabled = true;
         } else {
           tile.card.setInteractive({ useHandCursor: true });
@@ -667,8 +652,6 @@ export class GameScene extends Phaser.Scene {
       }
       tile.body.setTintFill(0xffffff);
       tile.blockedOverlay.setFillStyle(0x0b1225, 0);
-      tile.label.setColor("#0f172a");
-      tile.label.setAlpha(1);
       return;
     }
 
@@ -680,8 +663,6 @@ export class GameScene extends Phaser.Scene {
       tile.card.disableInteractive();
       tile.body.setTintFill(0xffffff);
       tile.blockedOverlay.setFillStyle(0x0b1225, 0);
-      tile.label.setColor("#111827");
-      tile.label.setAlpha(1);
       return;
     }
 
