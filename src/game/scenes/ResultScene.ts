@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { PRODUCT_COPY } from "../../meta/content/product-copy";
 import { paintMagicBackdrop, MAGIC_TOKENS } from "../../ui/magicStyle";
 import { MOTION, addFloatMotion, addPulseMotion, applyPressBounce } from "../../ui/motion";
+import { setShadow } from "../../ui/shadow";
 import type { RoundResultData } from "../types";
 
 const defaultResult: RoundResultData = {
@@ -101,10 +102,10 @@ export class ResultScene extends Phaser.Scene {
       duration: 2800
     });
 
-    this.add
+    const statsPanel = this.add
       .rectangle(width / 2, 410, 336, 184, 0xf8fafc, 0.12)
-      .setStrokeStyle(2, accentColor, 0.75)
-      .setShadow(0, 10, "rgba(0,0,0,0.2)", 18, false, true);
+      .setStrokeStyle(2, accentColor, 0.75);
+    setShadow(statsPanel, 0, 10, "rgba(0,0,0,0.2)", 18, false, true);
     this.add
       .text(
         width / 2,
@@ -252,7 +253,7 @@ export class ResultScene extends Phaser.Scene {
       .text(x, y, label, {
         fontFamily: "Trebuchet MS",
         fontSize: "24px",
-        color: fillColor,
+        color: `#${fillColor.toString(16).padStart(6, "0")}`,
         fontStyle: "bold"
       })
       .setOrigin(0.5);

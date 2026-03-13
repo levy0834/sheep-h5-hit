@@ -3,6 +3,7 @@ import { LEVELS } from "../levels";
 import { PRODUCT_COPY } from "../../meta/content/product-copy";
 import { MAGIC_TOKENS, paintMagicBackdrop, registerMagicTextures } from "../../ui/magicStyle";
 import { MOTION, addFloatMotion, addPulseMotion, applyPressBounce } from "../../ui/motion";
+import { setShadow } from "../../ui/shadow";
 
 export class StartScene extends Phaser.Scene {
   private isBootstrapping = false;
@@ -37,7 +38,7 @@ export class StartScene extends Phaser.Scene {
       .setPadding(10, 6, 10, 6)
       .setOrigin(0, 0);
     // rounded feel via shadow
-    sticker.setShadow(0, 6, "rgba(0,0,0,0.22)", 10, false, true);
+    setShadow(sticker, 0, 6, "rgba(0,0,0,0.22)", 10, false, true);
     addFloatMotion(this, sticker, 5, MOTION.float);
 
     this.add
@@ -258,10 +259,10 @@ export class StartScene extends Phaser.Scene {
     title: string,
     items: readonly string[]
   ): void {
-    this.add
+    const panel = this.add
       .rectangle(x, y, w, h, 0xf8fafc, 0.14)
-      .setStrokeStyle(2, 0xffffff, 0.48)
-      .setShadow(0, 14, "rgba(10, 30, 60, 0.28)", 24, false, true);
+      .setStrokeStyle(2, 0xffffff, 0.48);
+    setShadow(panel, 0, 14, "rgba(10, 30, 60, 0.28)", 24, false, true);
 
     this.add
       .text(x - w / 2 + 14, y - h / 2 + 14, title, {

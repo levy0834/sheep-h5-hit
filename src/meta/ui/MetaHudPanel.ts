@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import type { PressureTier } from "../types";
 import { MAGIC_TOKENS, registerMagicTextures } from "../../ui/magicStyle";
+import { setShadow } from "../../ui/shadow";
 
 export interface MetaHudViewModel {
   pressureValue: number;
@@ -36,7 +37,7 @@ export class MetaHudPanel extends Phaser.GameObjects.Container {
     // Glass-ish panel background
     this.bg = scene.add.rectangle(0, 0, width, 120, 0xf8fafc, 0.14).setOrigin(0, 0);
     this.bg.setStrokeStyle(2, 0xffffff, 0.22);
-    this.bg.setShadow(0, 10, "rgba(8, 35, 60, 0.28)", 22, false, true);
+    setShadow(this.bg, 0, 10, "rgba(8, 35, 60, 0.28)", 22, false, true);
 
     // Soft stroke highlight
     this.panelStroke = scene.add.rectangle(0, 0, width, 120, 0x000000, 0).setOrigin(0, 0);
@@ -83,7 +84,7 @@ export class MetaHudPanel extends Phaser.GameObjects.Container {
       .rectangle(width - 92, 58, 78, 26, 0x30e6b4, 0.95)
       .setOrigin(0, 0);
     this.cardButton.setStrokeStyle(2, 0xffffff, 0.45);
-    this.cardButton.setShadow(0, 6, "rgba(0,0,0,0.18)", 14, false, true);
+    setShadow(this.cardButton, 0, 6, "rgba(0,0,0,0.18)", 14, false, true);
     this.cardButton.setInteractive({ useHandCursor: true });
 
     this.cardButtonText = scene.add.text(width - 53, 71, "用卡", {

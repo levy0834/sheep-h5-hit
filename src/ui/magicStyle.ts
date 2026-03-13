@@ -185,7 +185,8 @@ function drawGrainTexture(graphics: Phaser.GameObjects.Graphics): void {
 export function registerMagicTextures(scene: Phaser.Scene): MagicTokens {
   const tokens = BASE_TOKENS;
   const { ids, tile, palette } = tokens;
-  const graphics = scene.make.graphics({ x: 0, y: 0, add: false });
+  // Use object form compatible with Phaser types on GitHub Actions.
+  const graphics = scene.make.graphics({ x: 0, y: 0 });
 
   if (!scene.textures.exists(ids.tileBase)) {
     drawTileTexture(graphics, tile, {
