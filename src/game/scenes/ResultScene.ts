@@ -3,6 +3,7 @@ import { PRODUCT_COPY } from "../../meta/content/product-copy";
 import { paintMagicBackdrop, MAGIC_TOKENS } from "../../ui/magicStyle";
 import { MOTION, addFloatMotion, addPulseMotion, applyPressBounce } from "../../ui/motion";
 import { setShadow } from "../../ui/shadow";
+import { ensureSfxOnGame } from "../../ui/sfx";
 import type { RoundResultData } from "../types";
 
 const defaultResult: RoundResultData = {
@@ -165,19 +166,25 @@ export class ResultScene extends Phaser.Scene {
       .setWordWrapWidth(336)
       .setOrigin(0.5);
 
-    this.createButton(width / 2, replayY, 288, 56, replayLabel, 0xfacc15, () =>
-      this.scene.start("GameScene", { levelId: this.result.levelId })
-    );
+    this.createButton(width / 2, replayY, 288, 56, replayLabel, 0xfacc15, () => {
+      const sfx = ensureSfxOnGame(this.game);
+      sfx.play(this, "ui_tap", { volume: 0.5, cooldownMs: 60 });
+      this.scene.start("GameScene", { levelId: this.result.levelId });
+    });
 
     if (hasNextLevel && this.result.nextLevelId) {
-      this.createButton(width / 2, nextLevelY, 288, 56, "下一关", 0x4ade80, () =>
-        this.scene.start("GameScene", { levelId: this.result.nextLevelId })
-      );
+      this.createButton(width / 2, nextLevelY, 288, 56, "下一关", 0x4ade80, () => {
+        const sfx = ensureSfxOnGame(this.game);
+        sfx.play(this, "ui_tap", { volume: 0.5, cooldownMs: 60 });
+        this.scene.start("GameScene", { levelId: this.result.nextLevelId });
+      });
     }
 
-    this.createButton(width / 2, homeY, 288, 56, "返回首页", 0x60a5fa, () =>
-      this.scene.start("StartScene")
-    );
+    this.createButton(width / 2, homeY, 288, 56, "返回首页", 0x60a5fa, () => {
+      const sfx = ensureSfxOnGame(this.game);
+      sfx.play(this, "ui_tap", { volume: 0.5, cooldownMs: 60 });
+      this.scene.start("StartScene");
+    });
   }
 
   private resolvePerformanceTag(): string {

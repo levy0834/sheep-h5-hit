@@ -5,6 +5,7 @@ import { StartScene } from "./game/scenes/StartScene";
 import { GameScene } from "./game/scenes/GameScene";
 import { ResultScene } from "./game/scenes/ResultScene";
 import { MetaOverlayScene } from "./scenes/MetaOverlayScene";
+import { ensureSfxOnGame } from "./ui/sfx";
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -21,7 +22,13 @@ const config: Phaser.Types.Core.GameConfig = {
   }
 };
 
-new Phaser.Game(config);
+const game = new Phaser.Game(config);
+
+// Global SFX controller stored on the game instance
+ensureSfxOnGame(game);
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(window as any).__SHEEP_GAME__ = game;
 // Perf marks for mobile diagnosis
 if (typeof performance !== "undefined") {
   performance.mark("game-created");

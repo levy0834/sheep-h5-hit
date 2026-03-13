@@ -4,6 +4,7 @@ import { PRODUCT_COPY } from "../../meta/content/product-copy";
 import { MAGIC_TOKENS, paintMagicBackdrop, registerMagicTextures } from "../../ui/magicStyle";
 import { MOTION, addFloatMotion, addPulseMotion, applyPressBounce } from "../../ui/motion";
 import { setShadow } from "../../ui/shadow";
+import { ensureSfxOnGame } from "../../ui/sfx";
 
 export class StartScene extends Phaser.Scene {
   private isBootstrapping = false;
@@ -19,6 +20,7 @@ export class StartScene extends Phaser.Scene {
 
   public create(): void {
     const { width, height } = this.scale;
+    this.preloadSfx();
     const startCopy = PRODUCT_COPY.start;
     this.isBootstrapping = false;
     this.gameplayScenesRegistered = true;
@@ -100,7 +102,11 @@ export class StartScene extends Phaser.Scene {
       286,
       76,
       startCopy.primaryCta.toUpperCase(),
-      () => this.handleStartPressed()
+      () => {
+        const tapSfx = ensureSfxOnGame(this.game);
+        tapSfx.play(this, "ui_tap", { volume: 0.5, cooldownMs: 60 });
+        void this.handleStartPressed();
+      }
     );
     this.startButton = body;
     this.startButtonLabel = label;
@@ -113,10 +119,35 @@ export class StartScene extends Phaser.Scene {
     }
   }
 
+  private preloadSfx(): void {
+    // We don't use a dedicated PreloadScene; load lightweight placeholder SFX here.
+    const keys = [
+      "ui_tap",
+      "tile_pick",
+      "tile_blocked",
+      "match",
+      "near_fail",
+      "win",
+      "lose"
+    ] as const;
+
+    for (const k of keys) {
+      if (this.cache.audio.exists(k)) continue;
+      this.load.audio(k, [`/sfx/${k}.wav`]);
+    }
+
+    if (!this.load.isLoading()) {
+      this.load.start();
+    }
+  }
+
   private async handleStartPressed(): Promise<void> {
     if (this.isBootstrapping) {
       return;
     }
+
+    const sfx = ensureSfxOnGame(this.game);
+    sfx.play(this, "ui_tap", { volume: 0.5, cooldownMs: 60 });
 
     this.isBootstrapping = true;
     this.loadingHintText?.setText(PRODUCT_COPY.start.loadingCta);

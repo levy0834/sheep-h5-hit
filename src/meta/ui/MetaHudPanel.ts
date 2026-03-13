@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import type { PressureTier } from "../types";
 import { MAGIC_TOKENS, registerMagicTextures } from "../../ui/magicStyle";
 import { setShadow } from "../../ui/shadow";
+import { ensureSfxOnGame } from "../../ui/sfx";
 
 export interface MetaHudViewModel {
   pressureValue: number;
@@ -22,6 +23,8 @@ export class MetaHudPanel extends Phaser.GameObjects.Container {
   private readonly toastText: Phaser.GameObjects.Text;
   private readonly cardButton: Phaser.GameObjects.Rectangle;
   private readonly cardButtonText: Phaser.GameObjects.Text;
+  private readonly muteButton: Phaser.GameObjects.Rectangle;
+  private readonly muteButtonText: Phaser.GameObjects.Text;
   private useCardHandler: (() => void) | null = null;
   private readonly panelWidth: number;
   private readonly bg: Phaser.GameObjects.Rectangle;
@@ -95,6 +98,22 @@ export class MetaHudPanel extends Phaser.GameObjects.Container {
     });
     this.cardButtonText.setOrigin(0.5, 0.5);
 
+    // Mute toggle button (top-right)
+    const sfx = ensureSfxOnGame(scene.game);
+    const muted = !sfx.isEnabled();
+    this.muteButton = scene.add.rectangle(width - 38, 12, 26, 26, 0x0b1225, 0.28).setOrigin(0, 0);
+    this.muteButton.setStrokeStyle(2, 0xffffff, 0.26);
+    setShadow(this.muteButton, 0, 6, "rgba(0,0,0,0.16)", 12, false, true);
+    this.muteButton.setInteractive({ useHandCursor: true });
+
+    this.muteButtonText = scene.add.text(width - 25, 25, muted ? "🔇" : "🔊", {
+      fontFamily: "Trebuchet MS",
+      fontSize: "14px",
+      color: "#e2e8f0",
+      fontStyle: "bold"
+    });
+    this.muteButtonText.setOrigin(0.5, 0.5);
+
     this.toastText = scene.add.text(width / 2, 112, "", {
       fontFamily: "Trebuchet MS",
       fontSize: "12px",
@@ -113,7 +132,27 @@ export class MetaHudPanel extends Phaser.GameObjects.Container {
         duration: 70,
         yoyo: true
       });
+      const tapSfx = ensureSfxOnGame(this.scene.game);
+      tapSfx.play(this.scene, "ui_tap", { volume: 0.45, cooldownMs: 60 });
       this.useCardHandler?.();
+    });
+
+    this.muteButton.on("pointerdown", () => {
+      this.scene.tweens.add({
+        targets: [this.muteButton, this.muteButtonText],
+        scaleX: 0.92,
+        scaleY: 0.92,
+        duration: 70,
+        yoyo: true
+      });
+      const toggleSfx = ensureSfxOnGame(this.scene.game);
+      const enabled = toggleSfx.toggle();
+      this.muteButtonText.setText(enabled ? "🔊" : "🔇");
+      // If just enabled, give a tiny confirmation sound.
+      if (enabled) {
+        toggleSfx.play(this.scene, "ui_tap", { volume: 0.45, cooldownMs: 60 });
+      }
+      this.pushToast(enabled ? "音效已开启" : "音效已关闭");
     });
 
     this.add([
@@ -127,6 +166,8 @@ export class MetaHudPanel extends Phaser.GameObjects.Container {
       this.chainText,
       this.cardButton,
       this.cardButtonText,
+      this.muteButton,
+      this.muteButtonText,
       this.toastText,
     ]);
 

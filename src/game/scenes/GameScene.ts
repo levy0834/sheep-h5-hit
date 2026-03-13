@@ -11,6 +11,7 @@ import {
 } from "../constants";
 import { MAGIC_TOKENS, paintMagicBackdrop, registerMagicTextures } from "../../ui/magicStyle";
 import { MOTION, addFloatMotion, addPulseMotion, applyPressBounce } from "../../ui/motion";
+import { ensureSfxOnGame } from "../../ui/sfx";
 import {
   LEVELS,
   TILE_KINDS,
@@ -93,6 +94,8 @@ export class GameScene extends Phaser.Scene {
   private comboFlash?: Phaser.GameObjects.Rectangle;
   private comboCelebrationCount = 0;
   private slotDangerGlow?: Phaser.GameObjects.Rectangle;
+  private nearFailVignette?: Phaser.GameObjects.Rectangle;
+  private sfx = ensureSfxOnGame(this.game);
 
   public constructor() {
     super("GameScene");
@@ -127,6 +130,7 @@ export class GameScene extends Phaser.Scene {
 
   public create(): void {
     const { width, height } = this.scale;
+    this.sfx = ensureSfxOnGame(this.game);
     if (typeof performance !== "undefined") performance.mark("game-scene-create");
     this.bus = this.game.events as unknown as EventBusLike;
     this.roundStartAtMs = this.time.now;
@@ -145,6 +149,8 @@ export class GameScene extends Phaser.Scene {
     this.time.delayedCall(0, () => {
       this.bus.emit(CORE_EVENTS.ROUND_START, { seed: Date.now() });
     });
+
+    this.updateNearFailVignette();
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
   }
 
@@ -488,7 +494,10 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.isTileBlocked(tile)) {
+      this.sfx.play(this, "tile_blocked", { volume: 0.4, cooldownMs: 120 });
       this.bounceBlocked(tile);
+      this.flashBlocked(tile);
+      this.spawnBlockedDust(tile.card.x, tile.card.y);
       this.statusText.setText("这张牌被压住了，先清掉上面的牌。");
       this.combo = 0;
       this.emitPlayerAction(false);
@@ -496,6 +505,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Immediate visual press feedback
+    this.sfx.play(this, "tile_pick", { volume: 0.45, cooldownMs: 40 });
     applyPressBounce(this, tile.card, () => {
       void this.onTileConfirmed(tile);
     }, 0.94);
@@ -507,6 +517,8 @@ export class GameScene extends Phaser.Scene {
     tile.state = "slot";
     tile.card.disableInteractive();
     this.slotTiles.push(tile);
+
+    this.flashAt(tile.card.x, tile.card.y, 0xa5f3fc);
 
     this.layoutSlotTiles();
     this.refreshAllBlockedVisuals();
@@ -522,6 +534,7 @@ export class GameScene extends Phaser.Scene {
     this.refreshBoardState();
     this.emitPlayerAction(removedCount > 0);
     this.emitNearFailIfNeeded();
+    this.updateNearFailVignette();
     this.checkRoundEnd();
   }
 
@@ -534,6 +547,62 @@ export class GameScene extends Phaser.Scene {
       repeat: 1,
       ease: "Sine.easeInOut"
     });
+  }
+
+  private flashBlocked(tile: TileEntity): void {
+    // quick white flash overlay to indicate it's blocked
+    const flash = this.add
+      .rectangle(tile.card.x, tile.card.y, TILE_WIDTH + 12, TILE_HEIGHT + 12, 0xffffff, 0.0)
+      .setOrigin(0.5)
+      .setDepth(tile.card.depth + 5);
+
+    this.tweens.add({
+      targets: flash,
+      alpha: { from: 0.22, to: 0 },
+      duration: 220,
+      ease: "Quadratic.Out",
+      onComplete: () => flash.destroy()
+    });
+
+    // tiny crack lines
+    const g = this.add.graphics().setDepth(tile.card.depth + 6);
+    g.lineStyle(2, 0xffffff, 0.28);
+    const x = tile.card.x;
+    const y = tile.card.y;
+    g.beginPath();
+    g.moveTo(x - 14, y - 10);
+    g.lineTo(x + 8, y + 6);
+    g.moveTo(x - 6, y + 12);
+    g.lineTo(x + 14, y - 6);
+    g.strokePath();
+    this.tweens.add({
+      targets: g,
+      alpha: { from: 0.35, to: 0 },
+      duration: 260,
+      ease: "Quadratic.Out",
+      onComplete: () => g.destroy()
+    });
+  }
+
+  private spawnBlockedDust(x: number, y: number): void {
+    // grey dust puff (small, cheap)
+    const count = 8;
+    for (let i = 0; i < count; i += 1) {
+      const a = Math.random() * Math.PI * 2;
+      const r = 10 + Math.random() * 14;
+      const dx = Math.cos(a) * r;
+      const dy = Math.sin(a) * r;
+      const p = this.add.circle(x, y, 3 + Math.random() * 4, 0x94a3b8, 0.25).setDepth(979);
+      this.tweens.add({
+        targets: p,
+        x: x + dx,
+        y: y + dy,
+        alpha: 0,
+        duration: 420,
+        ease: "Cubic.Out",
+        onComplete: () => p.destroy()
+      });
+    }
   }
 
   private updateSlotWarning(): void {
@@ -603,24 +672,59 @@ export class GameScene extends Phaser.Scene {
 
 
   private spawnExplosion(x: number, y: number, colorHex: string = "#a3e635"): void {
-    const count = 8;
+    const count = 10;
     const colorValue = parseInt(colorHex.slice(1), 16);
     for (let i = 0; i < count; i += 1) {
-      const angle = (Math.PI * 2 * i) / count;
-      const speed = 3 + Math.random() * 4;
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 2.2 + Math.random() * 5.2;
       const vx = Math.cos(angle) * speed;
       const vy = Math.sin(angle) * speed;
-      const particle = this.add.circle(x, y, 4, 0xffffff).setTint(colorValue);
+      const r = 2 + Math.random() * 3.5;
+      const particle = this.add.circle(x, y, r, colorValue);
       this.tweens.add({
         targets: particle,
-        x: x + vx * 12,
-        y: y + vy * 12,
+        x: x + vx * 14,
+        y: y + vy * 14,
         alpha: 0,
-        duration: 400,
+        duration: 420,
         ease: "Quadratic.Out",
         onComplete: () => particle.destroy()
       });
     }
+  }
+
+  private flashAt(x: number, y: number, color = 0xffffff): void {
+    const ring = this.add.circle(x, y, 10, color, 0.0).setDepth(980);
+    ring.setStrokeStyle(3, color, 0.55);
+    this.tweens.add({
+      targets: ring,
+      scale: { from: 0.9, to: 2.4 },
+      alpha: { from: 0.55, to: 0 },
+      duration: 260,
+      ease: "Cubic.Out",
+      onComplete: () => ring.destroy()
+    });
+  }
+
+  private cameraPunch(durationMs = 80, intensity = 0.0035): void {
+    const cam = this.cameras.main;
+    const w = this.scale.width;
+    const h = this.scale.height;
+    const ox = cam.scrollX;
+    const oy = cam.scrollY;
+
+    // tiny manual punch to avoid relying on camera shake internals
+    this.tweens.add({
+      targets: cam,
+      scrollX: ox + (Math.random() > 0.5 ? 1 : -1) * w * intensity,
+      scrollY: oy + (Math.random() > 0.5 ? 1 : -1) * h * intensity,
+      duration: durationMs * 0.5,
+      ease: "Quad.easeOut",
+      yoyo: true,
+      onComplete: () => {
+        cam.setScroll(ox, oy);
+      }
+    });
   }
 
 
@@ -652,12 +756,17 @@ export class GameScene extends Phaser.Scene {
         removedCount += 1;
         removedAny = true;
 
+        // Stronger feedback on matched tiles
+        this.spawnExplosion(matchedTile.card.x, matchedTile.card.y, "#fbbf24");
+        this.flashAt(matchedTile.card.x, matchedTile.card.y, 0xffffff);
+
         this.tweens.add({
           targets: matchedTile.card,
           scaleX: 0.2,
           scaleY: 0.2,
           alpha: 0,
-          duration: 160,
+          angle: { from: 0, to: (Math.random() > 0.5 ? 1 : -1) * 8 },
+          duration: 170,
           ease: "Back.easeIn",
           onComplete: () => {
             matchedTile.card.setVisible(false);
@@ -669,6 +778,8 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (removedAny) {
+      this.sfx.play(this, "match", { volume: 0.65, cooldownMs: 60 });
+      this.cameraPunch(90, 0.006);
       this.statusText.setText("三连消除，继续连起来！");
       this.layoutSlotTiles(110);
     } else {
@@ -856,6 +967,13 @@ export class GameScene extends Phaser.Scene {
 
   private finishRound(win: boolean, reason: string): void {
     this.roundOver = true;
+    this.sfx.play(this, win ? "win" : "lose", { volume: 0.7, cooldownMs: 200 });
+    if (win) {
+      this.cameraPunch(140, 0.006);
+    } else {
+      this.pulseVignette(0x0f172a);
+    }
+
     this.bus.emit(CORE_EVENTS.ROUND_END, {
       result: win ? "win" : "lose",
       maxCombo: this.maxCombo,
@@ -1052,6 +1170,10 @@ export class GameScene extends Phaser.Scene {
 
     this.nearFailLatched = true;
     this.nearFailCount += 1;
+
+    this.sfx.play(this, "near_fail", { volume: 0.55, cooldownMs: 250 });
+    this.pulseVignette(0xef4444);
+
     this.bus.emit(CORE_EVENTS.NEAR_FAIL, {
       freeSlots,
       trayFillRatio: this.getTrayFillRatio(),
@@ -1065,6 +1187,41 @@ export class GameScene extends Phaser.Scene {
 
   private getTrayFillRatio(): number {
     return Phaser.Math.Clamp(this.slotTiles.length / this.getSlotCapacity(), 0, 1);
+  }
+
+  private pulseVignette(color = 0xef4444): void {
+    const w = this.scale.width;
+    const h = this.scale.height;
+    const rect = this.add.rectangle(w / 2, h / 2, w, h, color, 0).setOrigin(0.5).setDepth(998);
+    this.tweens.add({
+      targets: rect,
+      alpha: { from: 0.12, to: 0 },
+      duration: 520,
+      ease: "Quadratic.Out",
+      onComplete: () => rect.destroy()
+    });
+  }
+
+  private updateNearFailVignette(): void {
+    if (!this.nearFailVignette) {
+      const w = this.scale.width;
+      const h = this.scale.height;
+      this.nearFailVignette = this.add
+        .rectangle(w / 2, h / 2, w, h, 0xef4444, 0)
+        .setOrigin(0.5)
+        .setDepth(997);
+    }
+
+    if (!this.nearFailVignette) return;
+
+    if (this.nearFailLatched && !this.roundOver) {
+      // breathing alpha ~ 0.02..0.09
+      const a = 0.055 + 0.035 * Math.sin(this.nearFailPulse * Math.PI * 2);
+      this.nearFailVignette.setAlpha(a);
+      return;
+    }
+
+    this.nearFailVignette.setAlpha(0);
   }
 
   private getSlotCapacity(): number {
@@ -1162,10 +1319,12 @@ export class GameScene extends Phaser.Scene {
 
     // Advance near-fail breathing pulse when latched
     if (this.nearFailLatched && !this.roundOver) {
-      this.nearFailPulse = (this.nearFailPulse + 0.15) % 1;
+      this.nearFailPulse = (this.nearFailPulse + 0.02) % 1;
     } else {
       this.nearFailPulse = 0;
     }
+
+    this.updateNearFailVignette();
   }
 
   private consumeIgnoreOverflowShield(): boolean {
