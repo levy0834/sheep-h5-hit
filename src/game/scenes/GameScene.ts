@@ -9,6 +9,7 @@ import {
   TILE_HEIGHT,
   TILE_WIDTH
 } from "../constants";
+import { MAGIC_TOKENS, paintMagicBackdrop, registerMagicTextures } from "../../ui/magicStyle";
 import {
   LEVELS,
   TILE_KINDS,
@@ -30,8 +31,9 @@ interface TileEntity {
   placement: TilePlacement;
   state: TileState;
   card: Phaser.GameObjects.Container;
-  body: Phaser.GameObjects.Rectangle;
+  body: Phaser.GameObjects.Image;
   label: Phaser.GameObjects.Text;
+  blockedOverlay: Phaser.GameObjects.Rectangle;
 }
 
 interface RoundSnapshot {
@@ -75,6 +77,7 @@ export class GameScene extends Phaser.Scene {
   private comebackChain = 0;
   private overflowShieldSaves = 0;
   private nearFailLatched = false;
+  private nearFailPulse = 0; // 0..1 phase for near-fail breathing
   private roundStartAtMs = 0;
   private overflowSlotsDelta = 0;
   private overflowSlotsExpiresAtMs = 0;
@@ -123,6 +126,8 @@ export class GameScene extends Phaser.Scene {
     this.bus = this.game.events as unknown as EventBusLike;
     this.roundStartAtMs = this.time.now;
 
+    registerMagicTextures(this);
+
     this.drawBackground(width, height);
     this.drawHud(width);
     this.drawBoardFrame(width);
@@ -143,9 +148,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private drawBackground(width: number, height: number): void {
-    const bg = this.add.graphics();
-    bg.fillGradientStyle(0x020617, 0x020617, 0x0f172a, 0x111827, 1);
-    bg.fillRect(0, 0, width, height);
+    paintMagicBackdrop(this, width, height);
   }
 
   private drawHud(width: number): void {
@@ -226,9 +229,14 @@ export class GameScene extends Phaser.Scene {
     onClick: () => void,
     locksSceneTransition = false
   ): void {
+    const shadow = this.add
+      .rectangle(x, y + 6, w, h, 0x0b1225, 0.22)
+      .setOrigin(0.5)
+      .setDepth(CONTROL_BUTTON_DEPTH - 1);
+
     const button = this.add
-      .rectangle(x, y, w, h, 0x1e293b, 0.95)
-      .setStrokeStyle(2, 0x94a3b8, 0.85)
+      .rectangle(x, y, w, h, 0xf8fafc, 0.12)
+      .setStrokeStyle(2, 0xffffff, 0.42)
       .setInteractive({ useHandCursor: true })
       .setDepth(CONTROL_BUTTON_DEPTH);
 
@@ -236,21 +244,23 @@ export class GameScene extends Phaser.Scene {
       .text(x, y, label, {
         fontFamily: "Trebuchet MS",
         fontSize: "20px",
-        color: "#e2e8f0",
+        color: "#eefcff",
         fontStyle: "bold"
       })
       .setOrigin(0.5)
       .setDepth(CONTROL_BUTTON_DEPTH + 1);
+
     let locked = false;
 
     const releaseLock = () => {
       locked = false;
       button.setScale(1);
       text.setScale(1);
+      shadow.setScale(1);
     };
 
-    button.on("pointerover", () => button.setFillStyle(0x334155, 1));
-    button.on("pointerout", () => button.setFillStyle(0x1e293b, 0.95));
+    button.on("pointerover", () => button.setFillStyle(0xf8fafc, 0.18));
+    button.on("pointerout", () => button.setFillStyle(0xf8fafc, 0.12));
     button.on("pointerdown", () => {
       if (locked || this.topControlTransitionLocked) {
         return;
@@ -301,9 +311,59 @@ export class GameScene extends Phaser.Scene {
 
       const x = BOARD_ORIGIN_X + placement.col * BOARD_COL_GAP;
       const y = BOARD_ORIGIN_Y + placement.row * BOARD_ROW_GAP;
+
       const body = this.add
-        .rectangle(0, 0, TILE_WIDTH, TILE_HEIGHT, kind.color, 0.96)
-        .setStrokeStyle(2, 0x0f172a, 0.45);
+        .image(0, 0, MAGIC_TOKENS.ids.tileBase)
+        .setDisplaySize(TILE_WIDTH, TILE_HEIGHT)
+        .setOrigin(0.5);
+
+      // Subtle tint to keep kind identity without reverting to flat rectangles.
+      body.setTint(kind.color);
+
+      const blockedOverlay = this.add
+        .rectangle(0, 0, TILE_WIDTH, TILE_HEIGHT, 0x0b1225, 0)
+        .setOrigin(0.5);
+
+      // Small icon on top center for quick recognition
+      const iconMap: Record<string, string> = {
+        A: "🐑", B: "🌿", C: "🪄", D: "🌙", E: "🍀",
+        F: "💫", G: "🔒", H: "⭐", I: "🫧", J: "💥",
+        K: "🌈", L: "✨"
+      };
+      const icon = iconMap[kind.id] ?? "❓";
+      const iconText = this.add
+        .text(0, -22, icon, {
+          fontFamily: "Arial",
+          fontSize: "20px"
+        })
+        .setOrigin(0.5);
+
+      // Rare badge & locked marker
+      const isLocked = Boolean(placement.locked);
+      const isRare = Boolean(placement.rare);
+      const rareGlow = this.add
+        .rectangle(0, 0, TILE_WIDTH + 10, TILE_HEIGHT + 10, 0xffffff, 0)
+        .setOrigin(0.5);
+
+      if (isRare) {
+        rareGlow
+          .setFillStyle(0xffffff, 0.12)
+          .setStrokeStyle(3, 0xfde047, 0.85);
+      }
+
+      const lockMark = this.add
+        .text(0, 2, "🔒", {
+          fontFamily: "Arial",
+          fontSize: "22px"
+        })
+        .setOrigin(0.5)
+        .setAlpha(isLocked ? 1 : 0);
+
+      if (isLocked) {
+        body.setTint(0x94a3b8);
+        iconText.setAlpha(0.35);
+      }
+
       const label = this.add
         .text(0, 1, kind.label, {
           fontFamily: "Trebuchet MS",
@@ -313,7 +373,9 @@ export class GameScene extends Phaser.Scene {
         })
         .setOrigin(0.5);
 
-      const card = this.add.container(x, y, [body, label]).setSize(TILE_WIDTH, TILE_HEIGHT);
+      const card = this.add
+        .container(x, y, [rareGlow, body, blockedOverlay, iconText, label, lockMark])
+        .setSize(TILE_WIDTH, TILE_HEIGHT);
       card.setDepth(80 + placement.layer * 16 + placement.row);
       card.setInteractive({ useHandCursor: true });
 
@@ -324,6 +386,7 @@ export class GameScene extends Phaser.Scene {
         state: "board",
         card,
         body,
+        blockedOverlay,
         label
       };
 
@@ -392,7 +455,7 @@ export class GameScene extends Phaser.Scene {
         ease: "Cubic.Out"
       });
       tile.card.setDepth(300 + index);
-      tile.body.setStrokeStyle(2, 0x0f172a, 0.8);
+      tile.body.setTint(tile.kind.color);
       tile.label.setColor("#111827");
       tile.label.setAlpha(1);
     });
@@ -459,13 +522,13 @@ export class GameScene extends Phaser.Scene {
 
       const blocked = this.isTileBlocked(tile);
       if (blocked) {
-        tile.body.setFillStyle(0x64748b, 0.75);
-        tile.body.setStrokeStyle(2, 0x334155, 0.85);
-        tile.label.setAlpha(0.45);
+        tile.body.setTint(0x94a3b8);
+        tile.blockedOverlay.setFillStyle(0x0b1225, 0.42);
+        tile.label.setAlpha(0.35);
         tile.card.disableInteractive();
       } else {
-        tile.body.setFillStyle(tile.kind.color, 0.97);
-        tile.body.setStrokeStyle(2, 0x0f172a, 0.6);
+        tile.body.setTint(tile.kind.color);
+        tile.blockedOverlay.setFillStyle(0x0b1225, 0);
         tile.label.setAlpha(1);
         if (tile.card.input) {
           tile.card.input.enabled = true;
@@ -570,8 +633,8 @@ export class GameScene extends Phaser.Scene {
       } else {
         tile.card.setInteractive({ useHandCursor: true });
       }
-      tile.body.setFillStyle(tile.kind.color, 0.97);
-      tile.body.setStrokeStyle(2, 0x0f172a, 0.6);
+      tile.body.setTint(tile.kind.color);
+      tile.blockedOverlay.setFillStyle(0x0b1225, 0);
       tile.label.setColor("#0f172a");
       tile.label.setAlpha(1);
       return;
@@ -583,8 +646,8 @@ export class GameScene extends Phaser.Scene {
       tile.card.setAlpha(1);
       tile.card.setScale(this.getSlotTileScale(this.getSlotSpacing(this.getSlotCapacity())));
       tile.card.disableInteractive();
-      tile.body.setFillStyle(tile.kind.color, 0.96);
-      tile.body.setStrokeStyle(2, 0x0f172a, 0.8);
+      tile.body.setTint(tile.kind.color);
+      tile.blockedOverlay.setFillStyle(0x0b1225, 0);
       tile.label.setColor("#111827");
       tile.label.setAlpha(1);
       return;
@@ -884,6 +947,14 @@ export class GameScene extends Phaser.Scene {
       this.slotMarkerGraphics.fillCircle(x, SLOT_Y, SLOT_MARKER_RADIUS);
       this.slotMarkerGraphics.lineStyle(2, strokeColor, isOverflowSlot ? 0.95 : 0.8);
       this.slotMarkerGraphics.strokeCircle(x, SLOT_Y, SLOT_MARKER_RADIUS);
+
+      // Near-fail breathing glow: only for base slots (not overflow)
+      if (this.nearFailLatched && !isOverflowSlot) {
+        // Pulsating alpha between 0.25 and 0.65
+        const alpha = 0.45 + 0.2 * Math.sin(this.nearFailPulse * Math.PI * 2);
+        this.slotMarkerGraphics.lineStyle(3, 0xff6a88, alpha);
+        this.slotMarkerGraphics.strokeCircle(x, SLOT_Y, SLOT_MARKER_RADIUS + 3);
+      }
     }
   }
 
@@ -930,6 +1001,13 @@ export class GameScene extends Phaser.Scene {
     this.emitNearFailIfNeeded();
     if (shouldCheckRoundEnd) {
       this.checkRoundEnd();
+    }
+
+    // Advance near-fail breathing pulse when latched
+    if (this.nearFailLatched && !this.roundOver) {
+      this.nearFailPulse = (this.nearFailPulse + 0.15) % 1;
+    } else {
+      this.nearFailPulse = 0;
     }
   }
 

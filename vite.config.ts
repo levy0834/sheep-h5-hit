@@ -32,4 +32,18 @@ function resolveBasePath(command: "serve" | "build", isPreview: boolean): string
 
 export default defineConfig(({ command, isPreview = false }) => ({
   base: resolveBasePath(command, isPreview),
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules/phaser")) {
+            return "phaser";
+          }
+          if (id.includes("src/meta/") || id.includes("src/ui/")) {
+            return "meta-ui";
+          }
+        }
+      }
+    }
+  }
 }));

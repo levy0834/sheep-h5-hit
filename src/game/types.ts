@@ -11,6 +11,9 @@ export interface TilePlacement {
   col: number;
   row: number;
   kindId: string;
+  /** Optional visual modifiers (do not affect gameplay) */
+  rare?: boolean;
+  locked?: boolean;
 }
 
 export interface LevelDefinition {

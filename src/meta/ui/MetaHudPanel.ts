@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import type { PressureTier } from "../types";
+import { MAGIC_TOKENS, registerMagicTextures } from "../../ui/magicStyle";
 
 export interface MetaHudViewModel {
   pressureValue: number;
@@ -19,71 +20,104 @@ export class MetaHudPanel extends Phaser.GameObjects.Container {
   private readonly chainText: Phaser.GameObjects.Text;
   private readonly toastText: Phaser.GameObjects.Text;
   private readonly cardButton: Phaser.GameObjects.Rectangle;
+  private readonly cardButtonText: Phaser.GameObjects.Text;
   private useCardHandler: (() => void) | null = null;
   private readonly panelWidth: number;
+  private readonly bg: Phaser.GameObjects.Rectangle;
+  private readonly panelStroke: Phaser.GameObjects.Rectangle;
 
   constructor(scene: Phaser.Scene, x: number, y: number, width: number) {
     super(scene, x, y);
     this.panelWidth = width;
     scene.add.existing(this);
 
-    const bg = scene.add.rectangle(0, 0, width, 120, 0x101418, 0.75).setOrigin(0, 0);
+    registerMagicTextures(scene);
+
+    // Glass-ish panel background
+    this.bg = scene.add.rectangle(0, 0, width, 120, 0xf8fafc, 0.14).setOrigin(0, 0);
+    this.bg.setStrokeStyle(2, 0xffffff, 0.22);
+    this.bg.setShadow(0, 10, "rgba(8, 35, 60, 0.28)", 22, false, true);
+
+    // Soft stroke highlight
+    this.panelStroke = scene.add.rectangle(0, 0, width, 120, 0x000000, 0).setOrigin(0, 0);
+    this.panelStroke.setStrokeStyle(2, 0xffffff, 0.28);
+
     const pressureBg = scene
       .add
-      .rectangle(14, 36, width - 28, 14, 0x2a3038, 1)
+      .rectangle(14, 40, width - 28, 14, 0x0b1225, 0.35)
       .setOrigin(0, 0);
+    pressureBg.setStrokeStyle(1, 0xffffff, 0.16);
+
     this.pressureFill = scene
       .add
-      .rectangle(14, 36, width - 28, 14, 0x37d67a, 1)
+      .rectangle(14, 40, width - 28, 14, 0x30e6b4, 0.92)
       .setOrigin(0, 0);
-    this.pressureText = scene.add.text(14, 14, "Pressure 0%", {
-      fontFamily: "Verdana",
+
+    this.pressureText = scene.add.text(14, 14, "压力 0%", {
+      fontFamily: "Trebuchet MS",
       fontSize: "15px",
-      color: "#ffffff",
+      color: "#eefcff",
+      fontStyle: "bold"
     });
-    this.chargeText = scene.add.text(14, 58, "Rescue Charge: 0", {
-      fontFamily: "Verdana",
+
+    this.chargeText = scene.add.text(14, 62, "救援能量：0", {
+      fontFamily: "Trebuchet MS",
       fontSize: "14px",
-      color: "#d1e8ff",
+      color: "#d9f7ff"
     });
-    this.cardText = scene.add.text(14, 80, "Card: none", {
-      fontFamily: "Verdana",
+
+    this.cardText = scene.add.text(14, 82, "卡牌：无", {
+      fontFamily: "Trebuchet MS",
       fontSize: "13px",
-      color: "#ffe8b6",
+      color: MAGIC_TOKENS.palette.tileRareBottom
     });
-    this.chainText = scene.add.text(width - 14, 80, "Comeback x0", {
-      fontFamily: "Verdana",
+
+    this.chainText = scene.add.text(width - 14, 82, "翻盘 x0", {
+      fontFamily: "Trebuchet MS",
       fontSize: "13px",
-      color: "#ffb347",
+      color: MAGIC_TOKENS.palette.tileRareBottom
     });
     this.chainText.setOrigin(1, 0);
 
     this.cardButton = scene.add
-      .rectangle(width - 86, 58, 72, 22, 0x1f8fdd, 1)
+      .rectangle(width - 92, 58, 78, 26, 0x30e6b4, 0.95)
       .setOrigin(0, 0);
+    this.cardButton.setStrokeStyle(2, 0xffffff, 0.45);
+    this.cardButton.setShadow(0, 6, "rgba(0,0,0,0.18)", 14, false, true);
     this.cardButton.setInteractive({ useHandCursor: true });
-    const buttonText = scene.add.text(width - 50, 69, "使用卡牌", {
-      fontFamily: "Verdana",
-      fontSize: "11px",
-      color: "#ffffff",
-    });
-    buttonText.setOrigin(0.5, 0.5);
 
-    this.toastText = scene.add.text(width / 2, 110, "", {
-      fontFamily: "Verdana",
+    this.cardButtonText = scene.add.text(width - 53, 71, "用卡", {
+      fontFamily: "Trebuchet MS",
       fontSize: "12px",
-      color: "#ffffff",
-      align: "center",
+      color: "#052e16",
+      fontStyle: "bold"
+    });
+    this.cardButtonText.setOrigin(0.5, 0.5);
+
+    this.toastText = scene.add.text(width / 2, 112, "", {
+      fontFamily: "Trebuchet MS",
+      fontSize: "12px",
+      color: "#eefcff",
+      align: "center"
     });
     this.toastText.setOrigin(0.5, 1);
     this.toastText.setAlpha(0);
 
     this.cardButton.on("pointerdown", () => {
+      // press feedback
+      this.scene.tweens.add({
+        targets: [this.cardButton, this.cardButtonText],
+        scaleX: 0.96,
+        scaleY: 0.96,
+        duration: 70,
+        yoyo: true
+      });
       this.useCardHandler?.();
     });
 
     this.add([
-      bg,
+      this.bg,
+      this.panelStroke,
       pressureBg,
       this.pressureFill,
       this.pressureText,
@@ -91,9 +125,10 @@ export class MetaHudPanel extends Phaser.GameObjects.Container {
       this.cardText,
       this.chainText,
       this.cardButton,
-      buttonText,
+      this.cardButtonText,
       this.toastText,
     ]);
+
     this.setScrollFactor(0);
     this.setDepth(1000);
   }
@@ -106,13 +141,15 @@ export class MetaHudPanel extends Phaser.GameObjects.Container {
     const ratio = Phaser.Math.Clamp(model.pressureValue / model.pressureMax, 0, 1);
     this.pressureFill.width = (this.panelWidth - 28) * ratio;
     this.pressureFill.setFillStyle(this.resolvePressureColor(model.pressureTier));
-    this.pressureText.setText(
-      `Pressure ${Math.round(ratio * 100)}% | Chaos Lv.${model.chaosLevel}`,
-    );
-    this.chargeText.setText(`Rescue Charge: ${model.rescueCharge}`);
-    this.cardText.setText(`Card: ${model.heldCardName ?? "none"}`);
-    this.chainText.setText(`Comeback x${model.comebackChain}`);
-    this.cardButton.setAlpha(model.heldCardName ? 1 : 0.45);
+
+    this.pressureText.setText(`压力 ${Math.round(ratio * 100)}% · 混沌 Lv.${model.chaosLevel}`);
+    this.chargeText.setText(`救援能量：${model.rescueCharge}`);
+    this.cardText.setText(`卡牌：${model.heldCardName ?? "无"}`);
+    this.chainText.setText(`翻盘 x${model.comebackChain}`);
+
+    const enabled = Boolean(model.heldCardName);
+    this.cardButton.setAlpha(enabled ? 1 : 0.4);
+    this.cardButtonText.setAlpha(enabled ? 1 : 0.5);
   }
 
   public pushToast(message: string): void {
@@ -129,11 +166,11 @@ export class MetaHudPanel extends Phaser.GameObjects.Container {
 
   private resolvePressureColor(tier: PressureTier): number {
     if (tier === "critical") {
-      return 0xf24d4d;
+      return 0xff6a88;
     }
     if (tier === "heated") {
-      return 0xffa53d;
+      return 0xffd36b;
     }
-    return 0x37d67a;
+    return 0x30e6b4;
   }
 }

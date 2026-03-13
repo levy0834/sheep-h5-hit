@@ -39,6 +39,16 @@ declare namespace Phaser {
       constructor(...args: any[]);
       [key: string]: any;
     }
+
+    class Graphics {
+      constructor(...args: any[]);
+      [key: string]: any;
+    }
+
+    class Image {
+      constructor(...args: any[]);
+      [key: string]: any;
+    }
   }
 
   class Scene {

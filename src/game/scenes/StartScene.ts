@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { LEVELS } from "../levels";
 import { PRODUCT_COPY } from "../../meta/content/product-copy";
+import { MAGIC_TOKENS, paintMagicBackdrop, registerMagicTextures } from "../../ui/magicStyle";
 
 export class StartScene extends Phaser.Scene {
   private isBootstrapping = false;
@@ -20,24 +21,37 @@ export class StartScene extends Phaser.Scene {
     this.isBootstrapping = false;
     this.syncGameplaySceneRegistrationState();
 
-    const bg = this.add.graphics();
-    bg.fillGradientStyle(0x0f172a, 0x0f172a, 0x1d4ed8, 0x1d4ed8, 1);
-    bg.fillRect(0, 0, width, height);
+    registerMagicTextures(this);
+    paintMagicBackdrop(this, width, height);
+
+    // Sticker tag
+    const sticker = this.add
+      .text(26, 22, "3 秒上头", {
+        fontFamily: "Trebuchet MS",
+        fontSize: "18px",
+        color: "#0f172a",
+        fontStyle: "bold",
+        backgroundColor: MAGIC_TOKENS.palette.tileRareBottom
+      })
+      .setPadding(10, 6, 10, 6)
+      .setOrigin(0, 0);
+    // rounded feel via shadow
+    sticker.setShadow(0, 6, "rgba(0,0,0,0.22)", 10, false, true);
 
     this.add
-      .text(width / 2, 78, "羊了个羊·翻盘版", {
+      .text(width / 2, 84, "羊了个羊·翻盘版", {
         fontFamily: "Trebuchet MS",
-        fontSize: "48px",
-        color: "#f8fafc",
+        fontSize: "46px",
+        color: "#eefcff",
         fontStyle: "bold"
       })
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, 136, startCopy.title, {
+      .text(width / 2, 140, startCopy.title, {
         fontFamily: "Trebuchet MS",
-        fontSize: "32px",
-        color: "#f8fafc",
+        fontSize: "30px",
+        color: "#eefcff",
         fontStyle: "bold"
       })
       .setOrigin(0.5);
@@ -45,10 +59,10 @@ export class StartScene extends Phaser.Scene {
     this.add
       .text(width / 2, 204, `${startCopy.subtitle}\n当前原型共 ${LEVELS.length} 关可玩。`, {
         fontFamily: "Trebuchet MS",
-        fontSize: "20px",
-        color: "#cbd5e1"
+        fontSize: "18px",
+        color: "#d9f7ff",
+        align: "center"
       })
-      .setAlign("center")
       .setWordWrapWidth(332)
       .setOrigin(0.5);
 
@@ -236,8 +250,9 @@ export class StartScene extends Phaser.Scene {
     items: readonly string[]
   ): void {
     this.add
-      .rectangle(x, y, w, h, 0x0b1225, 0.72)
-      .setStrokeStyle(2, 0x60a5fa, 0.55);
+      .rectangle(x, y, w, h, 0xf8fafc, 0.14)
+      .setStrokeStyle(2, 0xffffff, 0.48)
+      .setShadow(0, 14, "rgba(10, 30, 60, 0.28)", 24, false, true);
 
     this.add
       .text(x - w / 2 + 14, y - h / 2 + 14, title, {
@@ -268,10 +283,10 @@ export class StartScene extends Phaser.Scene {
     label: string,
     onClick: () => void | Promise<void>
   ): { body: Phaser.GameObjects.Rectangle; label: Phaser.GameObjects.Text } {
-    const shadow = this.add.rectangle(x, y + 8, w, h, 0x0b1225, 0.4).setOrigin(0.5);
+    const shadow = this.add.rectangle(x, y + 10, w, h, 0x0b1225, 0.28).setOrigin(0.5);
     const body = this.add
-      .rectangle(x, y, w, h, 0xfacc15, 1)
-      .setStrokeStyle(3, 0x0f172a, 0.5)
+      .rectangle(x, y, w, h, 0x30e6b4, 1)
+      .setStrokeStyle(3, 0xffffff, 0.55)
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
 
@@ -279,7 +294,7 @@ export class StartScene extends Phaser.Scene {
       .text(x, y, label, {
         fontFamily: "Trebuchet MS",
         fontSize: "34px",
-        color: "#1e293b",
+        color: "#052e16",
         fontStyle: "bold"
       })
       .setOrigin(0.5);
