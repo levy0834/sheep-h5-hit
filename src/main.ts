@@ -22,6 +22,10 @@ const config: Phaser.Types.Core.GameConfig = {
 };
 
 new Phaser.Game(config);
+// Perf marks for mobile diagnosis
+if (typeof performance !== "undefined") {
+  performance.mark("game-created");
+}
 // Hide HTML boot loader once Phaser is created
 const loader = document.getElementById("boot-loading");
 if (loader) loader.style.display = "none";

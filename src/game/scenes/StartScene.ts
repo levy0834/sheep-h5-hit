@@ -23,6 +23,7 @@ export class StartScene extends Phaser.Scene {
     this.isBootstrapping = false;
     this.gameplayScenesRegistered = true;
 
+    if (typeof performance !== "undefined") performance.mark("start-scene-create");
     registerMagicTextures(this);
     paintMagicBackdrop(this, width, height);
 
@@ -69,8 +70,8 @@ export class StartScene extends Phaser.Scene {
       .setWordWrapWidth(320)
       .setOrigin(0.5);
 
-    this.createGuidePanel(width / 2, 350, 336, 154, "基础规则", startCopy.coreRules);
-    this.createGuidePanel(width / 2, 534, 336, 154, "翻盘提示", startCopy.metaHints);
+    this.createGuidePanel(width / 2, 330, 330, 140, "基础规则", startCopy.coreRules);
+    this.createGuidePanel(width / 2, 500, 330, 140, "翻盘提示", startCopy.metaHints);
 
     this.loadingHintText = this.add
       .text(
@@ -127,7 +128,8 @@ export class StartScene extends Phaser.Scene {
         this.isBootstrapping = false;
         return;
       }
-      this.scene.start("GameScene", { levelId: LEVELS[0].id });
+      if (typeof performance !== "undefined") performance.mark("game-start-requested");
+    this.scene.start("GameScene", { levelId: LEVELS[0].id });
     } catch (error) {
       console.error("Failed to load gameplay scenes:", error);
       this.isBootstrapping = false;
@@ -254,9 +256,9 @@ export class StartScene extends Phaser.Scene {
     this.add
       .text(x - w / 2 + 14, y - h / 2 + 50, lines, {
         fontFamily: "Trebuchet MS",
-        fontSize: "15px",
+        fontSize: "14px",
         color: "#e2e8f0",
-        lineSpacing: 6
+        lineSpacing: 7
       })
       .setWordWrapWidth(w - 28)
       .setOrigin(0, 0);

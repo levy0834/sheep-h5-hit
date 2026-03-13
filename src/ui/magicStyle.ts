@@ -185,9 +185,9 @@ function drawGlowTexture(graphics: Phaser.GameObjects.Graphics, colorHex: string
   // Soft center glow
   graphics.fillStyle(color, 0.18);
   graphics.fillCircle(64, 64, 56);
-  graphics.fillStyle(color, 0.22);
+  graphics.fillStyle(color, 0.18);
   graphics.fillCircle(64, 64, 40);
-  graphics.fillStyle(color, 0.28);
+  graphics.fillStyle(color, 0.24);
   graphics.fillCircle(64, 64, 26);
   graphics.fillStyle(0xffffff, 0.12);
   graphics.fillCircle(64, 64, 18);
@@ -451,7 +451,7 @@ export function paintMagicBackdrop(scene: Phaser.Scene, width: number, height: n
   const grain = scene.add
     .tileSprite(0, 0, width, height, tokens.ids.grain)
     .setOrigin(0, 0)
-    .setAlpha(0.08)
+    .setAlpha(0.05)
     .setBlendMode("OVERLAY");
 
   container.add([glowA, glowB, grain]);

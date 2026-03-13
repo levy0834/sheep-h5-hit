@@ -124,6 +124,7 @@ export class GameScene extends Phaser.Scene {
 
   public create(): void {
     const { width, height } = this.scale;
+    if (typeof performance !== "undefined") performance.mark("game-scene-create");
     this.bus = this.game.events as unknown as EventBusLike;
     this.roundStartAtMs = this.time.now;
 
