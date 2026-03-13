@@ -2,6 +2,9 @@ import Phaser from "phaser";
 import "./style.css";
 import { GAME_HEIGHT, GAME_WIDTH } from "./game/constants";
 import { StartScene } from "./game/scenes/StartScene";
+import { GameScene } from "./game/scenes/GameScene";
+import { ResultScene } from "./game/scenes/ResultScene";
+import { MetaOverlayScene } from "./scenes/MetaOverlayScene";
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -9,7 +12,7 @@ const config: Phaser.Types.Core.GameConfig = {
   width: GAME_WIDTH,
   height: GAME_HEIGHT,
   backgroundColor: "#020617",
-  scene: [StartScene],
+  scene: [StartScene, GameScene, ResultScene, MetaOverlayScene],
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,

@@ -21,7 +21,7 @@ export class StartScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const startCopy = PRODUCT_COPY.start;
     this.isBootstrapping = false;
-    this.syncGameplaySceneRegistrationState();
+    this.gameplayScenesRegistered = true;
 
     registerMagicTextures(this);
     paintMagicBackdrop(this, width, height);
@@ -169,30 +169,7 @@ export class StartScene extends Phaser.Scene {
   }
 
   private async ensureGameplayScenesRegistered(): Promise<void> {
-    this.syncGameplaySceneRegistrationState();
-    if (this.gameplayScenesRegistered) {
-      return;
-    }
-
-    if (!this.gameplayScenesLoadPromise) {
-      this.gameplayScenesLoadPromise = Promise.all([
-        import("./GameScene"),
-        import("./ResultScene"),
-        import("../../scenes/MetaOverlayScene")
-      ])
-        .then(([gameSceneModule, resultSceneModule, metaOverlayModule]) => {
-          this.registerGameplayScene("GameScene", gameSceneModule.GameScene);
-          this.registerGameplayScene("ResultScene", resultSceneModule.ResultScene);
-          this.registerGameplayScene("MetaOverlayScene", metaOverlayModule.MetaOverlayScene);
-          this.gameplayScenesRegistered = true;
-        })
-        .catch((error) => {
-          this.gameplayScenesLoadPromise = null;
-          throw error;
-        });
-    }
-
-    await this.gameplayScenesLoadPromise;
+    return;
   }
 
   private registerGameplayScene(

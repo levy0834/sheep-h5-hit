@@ -326,7 +326,7 @@ export class GameScene extends Phaser.Scene {
         .setOrigin(0.5);
 
       const iconBadge = this.add
-        .circle(0, -18, 11, 0xffffff, 0.88)
+        .circle(0, -20, 15, 0xffffff, 0.94)
         .setStrokeStyle(1, 0x0f172a, 0.08);
 
       // Small icon on top center for quick recognition
@@ -337,9 +337,9 @@ export class GameScene extends Phaser.Scene {
       };
       const icon = iconMap[kind.id] ?? "❓";
       const iconText = this.add
-        .text(0, -22, icon, {
+        .text(0, -24, icon, {
           fontFamily: "Arial",
-          fontSize: "18px"
+          fontSize: "26px"
         })
         .setOrigin(0.5);
 
@@ -376,7 +376,8 @@ export class GameScene extends Phaser.Scene {
           fontStyle: "bold",
           color: "#0f172a"
         })
-        .setOrigin(0.5);
+        .setOrigin(0.5)
+        .setAlpha(0);
 
       const card = this.add
         .container(x, y, [rareGlow, body, blockedOverlay, iconBadge, iconText, label, lockMark])
