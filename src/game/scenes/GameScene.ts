@@ -417,7 +417,7 @@ export class GameScene extends Phaser.Scene {
 
     if (blocked) {
       tile.body.setTint(0xaab4c8);
-      tile.blockedOverlay.setFillStyle(0x0b1225, 0.18);
+      tile.blockedOverlay.setFillStyle(0x0b1225, 0.14);
       if (icon && (icon as any).setAlpha) {
         (icon as any).setAlpha(0.55);
       }
@@ -433,10 +433,10 @@ export class GameScene extends Phaser.Scene {
     if (icon && tile.state === "board" && this.tweens.getTweensOf(icon).length === 0) {
       this.tweens.add({
         targets: icon,
-        scale: { from: 1, to: 1.03 },
+        scale: { from: 1, to: 1.02 },
         yoyo: true,
         repeat: -1,
-        duration: 1200,
+        duration: 1600,
         ease: "Sine.easeInOut"
       });
     }
@@ -485,25 +485,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   private bounceBlocked(tile: TileEntity): void {
-    const flash = this.add
-      .rectangle(tile.card.x, tile.card.y, TILE_WIDTH, TILE_HEIGHT, 0xef4444, 0.12)
-      .setOrigin(0.5)
-      .setDepth(tile.card.depth + 5);
-
     this.tweens.add({
       targets: tile.card,
-      x: tile.card.x - 5,
-      duration: 45,
+      x: tile.card.x - 4,
+      duration: 50,
       yoyo: true,
       repeat: 1,
       ease: "Sine.easeInOut"
-    });
-
-    this.tweens.add({
-      targets: flash,
-      alpha: 0,
-      duration: 160,
-      onComplete: () => flash.destroy()
     });
   }
 
@@ -524,11 +512,11 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (danger) {
-      this.slotDangerGlow.setAlpha(0.08);
+      this.slotDangerGlow.setAlpha(0.06);
       if (this.tweens.getTweensOf(this.slotDangerGlow).length === 0) {
         this.tweens.add({
           targets: this.slotDangerGlow,
-          alpha: { from: 0.04, to: 0.12 },
+          alpha: { from: 0.03, to: 0.08 },
           duration: 900,
           yoyo: true,
           repeat: -1,
