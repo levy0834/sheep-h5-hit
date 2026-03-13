@@ -406,6 +406,27 @@ export class GameScene extends Phaser.Scene {
 
       card.on("pointerdown", () => this.onTileTapped(tile));
       this.tiles.push(tile);
+      this.applyBlockedVisuals(tile, this.isTileBlocked(tile));
+    }
+  }
+
+
+  private applyBlockedVisuals(tile: TileEntity, blocked: boolean): void {
+    if (blocked) {
+      tile.body.setTint(0xaab4c8);
+      tile.blockedOverlay.setFillStyle(0x0b1225, 0.18);
+      // slightly dim icon too
+      const icon = tile.card.getAt(3) as Phaser.GameObjects.Image | undefined;
+      if (icon && (icon as any).setAlpha) {
+        (icon as any).setAlpha(0.55);
+      }
+    } else {
+      tile.body.setTintFill(0xffffff);
+      tile.blockedOverlay.setFillStyle(0x0b1225, 0);
+      const icon = tile.card.getAt(3) as Phaser.GameObjects.Image | undefined;
+      if (icon && (icon as any).setAlpha) {
+        (icon as any).setAlpha(1);
+      }
     }
   }
 
@@ -436,7 +457,9 @@ export class GameScene extends Phaser.Scene {
     this.slotTiles.push(tile);
 
     this.layoutSlotTiles();
+    this.refreshAllBlockedVisuals();
     const removedCount = this.resolveMatches();
+    this.refreshAllBlockedVisuals();
     if (removedCount > 0) {
       this.combo += 1;
       this.maxCombo = Math.max(this.maxCombo, this.combo);
@@ -477,6 +500,14 @@ export class GameScene extends Phaser.Scene {
       });
       tile.card.setDepth(300 + index);
       tile.body.setTintFill(0xffffff);
+    });
+  }
+
+  private refreshAllBlockedVisuals(): void {
+    this.tiles.forEach((t) => {
+      if (t.state === "board") {
+        this.applyBlockedVisuals(t, this.isTileBlocked(t));
+      }
     });
   }
 
