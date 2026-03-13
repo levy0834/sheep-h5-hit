@@ -30,7 +30,7 @@ export class StartScene extends Phaser.Scene {
     const sticker = this.add
       .text(26, 22, "3 秒上头", {
         fontFamily: "Trebuchet MS",
-        fontSize: "18px",
+        fontSize: "17px",
         color: "#0f172a",
         fontStyle: "bold",
         backgroundColor: MAGIC_TOKENS.palette.tileRareBottom
@@ -51,7 +51,7 @@ export class StartScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, 140, startCopy.title, {
+      .text(width / 2, 136, startCopy.title, {
         fontFamily: "Trebuchet MS",
         fontSize: "30px",
         color: "#eefcff",
@@ -60,22 +60,22 @@ export class StartScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, 204, `${startCopy.subtitle}\n当前原型共 ${LEVELS.length} 关可玩。`, {
+      .text(width / 2, 194, `${startCopy.subtitle}\n当前共 ${LEVELS.length} 关。`, {
         fontFamily: "Trebuchet MS",
         fontSize: "18px",
         color: "#d9f7ff",
         align: "center"
       })
-      .setWordWrapWidth(332)
+      .setWordWrapWidth(320)
       .setOrigin(0.5);
 
-    this.createGuidePanel(width / 2, 372, 340, 176, "基础规则", startCopy.coreRules);
-    this.createGuidePanel(width / 2, 574, 340, 176, "翻盘提示", startCopy.metaHints);
+    this.createGuidePanel(width / 2, 350, 336, 154, "基础规则", startCopy.coreRules);
+    this.createGuidePanel(width / 2, 534, 336, 154, "翻盘提示", startCopy.metaHints);
 
     this.loadingHintText = this.add
       .text(
         width / 2,
-        684,
+        642,
         this.gameplayScenesRegistered ? startCopy.readyCta : startCopy.secondaryCta,
         {
           fontFamily: "Trebuchet MS",
@@ -95,7 +95,7 @@ export class StartScene extends Phaser.Scene {
 
     const { body, label } = this.createButton(
       width / 2,
-      752,
+      730,
       286,
       76,
       startCopy.primaryCta.toUpperCase(),
@@ -277,9 +277,9 @@ export class StartScene extends Phaser.Scene {
     this.add
       .text(x - w / 2 + 14, y - h / 2 + 50, lines, {
         fontFamily: "Trebuchet MS",
-        fontSize: "16px",
+        fontSize: "15px",
         color: "#e2e8f0",
-        lineSpacing: 5
+        lineSpacing: 6
       })
       .setWordWrapWidth(w - 28)
       .setOrigin(0, 0);

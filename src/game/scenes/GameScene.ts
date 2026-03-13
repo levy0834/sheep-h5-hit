@@ -319,11 +319,15 @@ export class GameScene extends Phaser.Scene {
         .setOrigin(0.5);
 
       // Subtle tint to keep kind identity without reverting to flat rectangles.
-      body.setTint(kind.color);
+      body.setTintFill(0xffffff);
 
       const blockedOverlay = this.add
         .rectangle(0, 0, TILE_WIDTH, TILE_HEIGHT, 0x0b1225, 0)
         .setOrigin(0.5);
+
+      const iconBadge = this.add
+        .circle(0, -18, 11, 0xffffff, 0.88)
+        .setStrokeStyle(1, 0x0f172a, 0.08);
 
       // Small icon on top center for quick recognition
       const iconMap: Record<string, string> = {
@@ -335,7 +339,7 @@ export class GameScene extends Phaser.Scene {
       const iconText = this.add
         .text(0, -22, icon, {
           fontFamily: "Arial",
-          fontSize: "20px"
+          fontSize: "18px"
         })
         .setOrigin(0.5);
 
@@ -361,21 +365,21 @@ export class GameScene extends Phaser.Scene {
         .setAlpha(isLocked ? 1 : 0);
 
       if (isLocked) {
-        body.setTint(0x94a3b8);
+        body.setTint(0xb8c2d9);
         iconText.setAlpha(0.35);
       }
 
       const label = this.add
-        .text(0, 1, kind.label, {
+        .text(0, 10, kind.label, {
           fontFamily: "Trebuchet MS",
-          fontSize: "29px",
+          fontSize: "24px",
           fontStyle: "bold",
           color: "#0f172a"
         })
         .setOrigin(0.5);
 
       const card = this.add
-        .container(x, y, [rareGlow, body, blockedOverlay, iconText, label, lockMark])
+        .container(x, y, [rareGlow, body, blockedOverlay, iconBadge, iconText, label, lockMark])
         .setSize(TILE_WIDTH, TILE_HEIGHT);
       card.setDepth(80 + placement.layer * 16 + placement.row);
       card.setInteractive({ useHandCursor: true });
@@ -476,7 +480,7 @@ export class GameScene extends Phaser.Scene {
         ease: "Cubic.Out"
       });
       tile.card.setDepth(300 + index);
-      tile.body.setTint(tile.kind.color);
+      tile.body.setTintFill(0xffffff);
       tile.label.setColor("#111827");
       tile.label.setAlpha(1);
     });
@@ -543,12 +547,12 @@ export class GameScene extends Phaser.Scene {
 
       const blocked = this.isTileBlocked(tile);
       if (blocked) {
-        tile.body.setTint(0x94a3b8);
+        tile.body.setTint(0xb8c2d9);
         tile.blockedOverlay.setFillStyle(0x0b1225, 0.42);
         tile.label.setAlpha(0.35);
         tile.card.disableInteractive();
       } else {
-        tile.body.setTint(tile.kind.color);
+        tile.body.setTintFill(0xffffff);
         tile.blockedOverlay.setFillStyle(0x0b1225, 0);
         tile.label.setAlpha(1);
         if (tile.card.input) {
@@ -654,7 +658,7 @@ export class GameScene extends Phaser.Scene {
       } else {
         tile.card.setInteractive({ useHandCursor: true });
       }
-      tile.body.setTint(tile.kind.color);
+      tile.body.setTintFill(0xffffff);
       tile.blockedOverlay.setFillStyle(0x0b1225, 0);
       tile.label.setColor("#0f172a");
       tile.label.setAlpha(1);
@@ -667,7 +671,7 @@ export class GameScene extends Phaser.Scene {
       tile.card.setAlpha(1);
       tile.card.setScale(this.getSlotTileScale(this.getSlotSpacing(this.getSlotCapacity())));
       tile.card.disableInteractive();
-      tile.body.setTint(tile.kind.color);
+      tile.body.setTintFill(0xffffff);
       tile.blockedOverlay.setFillStyle(0x0b1225, 0);
       tile.label.setColor("#111827");
       tile.label.setAlpha(1);
