@@ -89,6 +89,7 @@ export class GameScene extends Phaser.Scene {
   private slotText!: Phaser.GameObjects.Text;
   private statusText!: Phaser.GameObjects.Text;
   private slotMarkerGraphics: any = null;
+  private slotDangerGlow?: Phaser.GameObjects.Rectangle;
 
   public constructor() {
     super("GameScene");
@@ -412,21 +413,32 @@ export class GameScene extends Phaser.Scene {
 
 
   private applyBlockedVisuals(tile: TileEntity, blocked: boolean): void {
+    const icon = tile.card.getAt(3) as Phaser.GameObjects.Image | undefined;
+
     if (blocked) {
       tile.body.setTint(0xaab4c8);
       tile.blockedOverlay.setFillStyle(0x0b1225, 0.18);
-      // slightly dim icon too
-      const icon = tile.card.getAt(3) as Phaser.GameObjects.Image | undefined;
       if (icon && (icon as any).setAlpha) {
         (icon as any).setAlpha(0.55);
       }
-    } else {
-      tile.body.setTintFill(0xffffff);
-      tile.blockedOverlay.setFillStyle(0x0b1225, 0);
-      const icon = tile.card.getAt(3) as Phaser.GameObjects.Image | undefined;
-      if (icon && (icon as any).setAlpha) {
-        (icon as any).setAlpha(1);
-      }
+      this.tweens.getTweensOf(icon as any).forEach((t: any) => t.stop());
+      return;
+    }
+
+    tile.body.setTintFill(0xffffff);
+    tile.blockedOverlay.setFillStyle(0x0b1225, 0);
+    if (icon && (icon as any).setAlpha) {
+      (icon as any).setAlpha(1);
+    }
+    if (icon && tile.state === "board" && this.tweens.getTweensOf(icon).length === 0) {
+      this.tweens.add({
+        targets: icon,
+        scale: { from: 1, to: 1.03 },
+        yoyo: true,
+        repeat: -1,
+        duration: 1200,
+        ease: "Sine.easeInOut"
+      });
     }
   }
 
@@ -473,13 +485,61 @@ export class GameScene extends Phaser.Scene {
   }
 
   private bounceBlocked(tile: TileEntity): void {
+    const flash = this.add
+      .rectangle(tile.card.x, tile.card.y, TILE_WIDTH, TILE_HEIGHT, 0xef4444, 0.12)
+      .setOrigin(0.5)
+      .setDepth(tile.card.depth + 5);
+
     this.tweens.add({
       targets: tile.card,
-      y: tile.card.y - 8,
-      duration: 70,
+      x: tile.card.x - 5,
+      duration: 45,
       yoyo: true,
+      repeat: 1,
       ease: "Sine.easeInOut"
     });
+
+    this.tweens.add({
+      targets: flash,
+      alpha: 0,
+      duration: 160,
+      onComplete: () => flash.destroy()
+    });
+  }
+
+  private updateSlotWarning(): void {
+    const used = this.slotTiles.length;
+    const cap = this.getSlotCapacity();
+    const danger = used >= cap - 1;
+
+    if (!this.slotDangerGlow) {
+      this.slotDangerGlow = this.add
+        .rectangle(this.scale.width / 2, SLOT_Y, this.scale.width * 0.92, 110, 0xef4444, 0)
+        .setOrigin(0.5)
+        .setDepth(250);
+    }
+
+    if (!this.slotDangerGlow) {
+      return;
+    }
+
+    if (danger) {
+      this.slotDangerGlow.setAlpha(0.08);
+      if (this.tweens.getTweensOf(this.slotDangerGlow).length === 0) {
+        this.tweens.add({
+          targets: this.slotDangerGlow,
+          alpha: { from: 0.04, to: 0.12 },
+          duration: 900,
+          yoyo: true,
+          repeat: -1,
+          ease: "Sine.easeInOut"
+        });
+      }
+      return;
+    }
+
+    this.slotDangerGlow.setAlpha(0);
+    this.tweens.getTweensOf(this.slotDangerGlow).forEach((t: any) => t.stop());
   }
 
   private layoutSlotTiles(duration = 140): void {
@@ -501,6 +561,7 @@ export class GameScene extends Phaser.Scene {
       tile.card.setDepth(300 + index);
       tile.body.setTintFill(0xffffff);
     });
+    this.updateSlotWarning();
   }
 
   private refreshAllBlockedVisuals(): void {
