@@ -91,6 +91,7 @@ export class GameScene extends Phaser.Scene {
   private slotMarkerGraphics: any = null;
   private comboText?: Phaser.GameObjects.Text;
   private comboFlash?: Phaser.GameObjects.Rectangle;
+  private comboCelebrationCount = 0;
   private slotDangerGlow?: Phaser.GameObjects.Rectangle;
 
   public constructor() {
@@ -446,22 +447,24 @@ export class GameScene extends Phaser.Scene {
 
 
   private maybeShowComboCelebration(): void {
-    if (!this.comboText && this.combo >= 3) {
+    if (!this.comboText && this.combo >= 5 && this.comboCelebrationCount < 2) {
       // create combo flash overlay and big text
       const w = this.scale.width;
       const h = this.scale.height;
       this.comboFlash = this.add.rectangle(w/2, h/2, w, h, 0xffffff, 0).setOrigin(0.5).setDepth(999);
       this.tweens.add({
         targets: this.comboFlash,
-        alpha: { from: 0.18, to: 0 },
+        alpha: { from: 0.10, to: 0 },
         duration: 800,
         ease: "Quadratic.Out",
         onComplete: () => { this.comboFlash?.destroy(); this.comboFlash = undefined; }
       });
 
+      this.comboCelebrationCount += 1;
+
       this.comboText = this.add.text(w/2, h/3, `COMBO x${this.combo}!`, {
         fontFamily: "Trebuchet MS",
-        fontSize: "64px",
+        fontSize: "56px",
         color: "#fbbf24",
         fontStyle: "900",
         stroke: "#0f172a",

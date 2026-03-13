@@ -155,7 +155,7 @@ export class ResultScene extends Phaser.Scene {
       .setOrigin(0.5, 0);
 
     this.add
-      .text(width / 2, 618, `💡 ${nextStep}`, {
+      .text(width / 2, 606, `💡 ${nextStep}`, {
         fontFamily: "Trebuchet MS",
         fontSize: "15px",
         color: this.result.win ? "#1e40af" : "#9d174d",
