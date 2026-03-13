@@ -330,54 +330,60 @@ function drawGrainTexture(graphics: Phaser.GameObjects.Graphics): void {
 export function registerMagicTextures(scene: Phaser.Scene): MagicTokens {
   const tokens = BASE_TOKENS;
   const { ids, tile, palette } = tokens;
-  const gameTextures = scene.game.textures;
-
-  function ensureTexture(key: string, w: number, h: number, draw: (g: any) => void): void {
-    if (gameTextures.exists(key)) {
-      return;
-    }
-    const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    g.setSize(w, h);
-    draw(g);
-    gameTextures.addCanvas(key, g.canvas);
-    g.destroy();
-  }
+  const graphics = scene.make.graphics({ x: 0, y: 0 });
 
   // Tiles
-  ensureTexture(ids.tileBase, tile.width, tile.height, (g) => {
-    drawTileTexture(g, tile, { top: palette.tileTop, bottom: palette.tileBottom, rim: "#ffffff", sparkle: palette.mist });
-  });
-  ensureTexture(ids.tileRare, tile.width, tile.height, (g) => {
-    drawTileTexture(g, tile, { top: palette.tileRareTop, bottom: palette.tileRareBottom, rim: "#fff3cb", sparkle: "#fffce7" });
-  });
-  ensureTexture(ids.tileLocked, tile.width, tile.height, (g) => {
-    drawTileTexture(g, tile, { top: palette.tileLockedTop, bottom: palette.tileLockedBottom, rim: "#edf2ff", sparkle: "#f4f7ff" });
-  });
+  if (!scene.textures.exists(ids.tileBase)) {
+    drawTileTexture(graphics, tile, { top: palette.tileTop, bottom: palette.tileBottom, rim: "#ffffff", sparkle: palette.mist });
+    graphics.generateTexture(ids.tileBase, tile.width, tile.height);
+  }
+
+  if (!scene.textures.exists(ids.tileRare)) {
+    graphics.clear();
+    drawTileTexture(graphics, tile, { top: palette.tileRareTop, bottom: palette.tileRareBottom, rim: "#fff3cb", sparkle: "#fffce7" });
+    graphics.generateTexture(ids.tileRare, tile.width, tile.height);
+  }
+
+  if (!scene.textures.exists(ids.tileLocked)) {
+    graphics.clear();
+    drawTileTexture(graphics, tile, { top: palette.tileLockedTop, bottom: palette.tileLockedBottom, rim: "#edf2ff", sparkle: "#f4f7ff" });
+    graphics.generateTexture(ids.tileLocked, tile.width, tile.height);
+  }
 
   // UI elements
-  ensureTexture(ids.panel, 380, 180, (g) => {
-    drawRoundedGradientRect(g, 0, 0, 380, 180, 24, palette.panelTop, palette.panelBottom);
-    g.lineStyle(2, colorToInt(palette.lineSoft), 0.78);
-    g.strokeRoundedRect(1, 1, 378, 178, 24);
-  });
+  if (!scene.textures.exists(ids.panel)) {
+    graphics.clear();
+    drawRoundedGradientRect(graphics, 0, 0, 380, 180, 24, palette.panelTop, palette.panelBottom);
+    graphics.lineStyle(2, colorToInt(palette.lineSoft), 0.78);
+    graphics.strokeRoundedRect(1, 1, 378, 178, 24);
+    graphics.generateTexture(ids.panel, 380, 180);
+  }
 
-  ensureTexture(ids.hudBadge, 142, 56, (g) => {
-    drawRoundedGradientRect(g, 0, 0, 142, 56, 16, palette.hudTop, palette.hudBottom);
-    g.lineStyle(2, colorToInt(palette.lineSoft), 0.5);
-    g.strokeRoundedRect(1, 1, 140, 54, 16);
-  });
+  if (!scene.textures.exists(ids.hudBadge)) {
+    graphics.clear();
+    drawRoundedGradientRect(graphics, 0, 0, 142, 56, 16, palette.hudTop, palette.hudBottom);
+    graphics.lineStyle(2, colorToInt(palette.lineSoft), 0.5);
+    graphics.strokeRoundedRect(1, 1, 140, 54, 16);
+    graphics.generateTexture(ids.hudBadge, 142, 56);
+  }
 
-  ensureTexture(ids.spark, 40, 40, (g) => {
-    drawSparkTexture(g, palette.accent);
-  });
+  if (!scene.textures.exists(ids.spark)) {
+    graphics.clear();
+    drawSparkTexture(graphics, palette.accent);
+    graphics.generateTexture(ids.spark, 40, 40);
+  }
 
-  ensureTexture(ids.glow, 128, 128, (g) => {
-    drawGlowTexture(g, palette.accent);
-  });
+  if (!scene.textures.exists(ids.glow)) {
+    graphics.clear();
+    drawGlowTexture(graphics, palette.accent);
+    graphics.generateTexture(ids.glow, 128, 128);
+  }
 
-  ensureTexture(ids.grain, 128, 128, (g) => {
-    drawGrainTexture(g);
-  });
+  if (!scene.textures.exists(ids.grain)) {
+    graphics.clear();
+    drawGrainTexture(graphics);
+    graphics.generateTexture(ids.grain, 128, 128);
+  }
 
   // Icons (64x64)
   const iconDefs: Array<{ kind: string; id: string; color: string }> = [
@@ -395,14 +401,13 @@ export function registerMagicTextures(scene: Phaser.Scene): MagicTokens {
     { kind: "L", id: ids.tileIconL, color: "#60a5fa" }
   ];
   for (const def of iconDefs) {
-    if (gameTextures.exists(def.id)) continue;
-    const g2 = scene.make.graphics({ x: 0, y: 0, add: false });
-    g2.setSize(64, 64);
-    drawIconShape(g2, def.kind, def.color);
-    gameTextures.addCanvas(def.id, g2.canvas);
-    g2.destroy();
+    if (scene.textures.exists(def.id)) continue;
+    graphics.clear();
+    drawIconShape(graphics, def.kind, def.color);
+    graphics.generateTexture(def.id, 64, 64);
   }
 
+  graphics.destroy();
   return tokens;
 }
 
