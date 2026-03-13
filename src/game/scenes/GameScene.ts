@@ -89,6 +89,8 @@ export class GameScene extends Phaser.Scene {
   private slotText!: Phaser.GameObjects.Text;
   private statusText!: Phaser.GameObjects.Text;
   private slotMarkerGraphics: any = null;
+  private comboText?: Phaser.GameObjects.Text;
+  private comboFlash?: Phaser.GameObjects.Rectangle;
   private slotDangerGlow?: Phaser.GameObjects.Rectangle;
 
   public constructor() {
@@ -442,6 +444,41 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+
+  private maybeShowComboCelebration(): void {
+    if (!this.comboText && this.combo >= 3) {
+      // create combo flash overlay and big text
+      const w = this.scale.width;
+      const h = this.scale.height;
+      this.comboFlash = this.add.rectangle(w/2, h/2, w, h, 0xffffff, 0).setOrigin(0.5).setDepth(999);
+      this.tweens.add({
+        targets: this.comboFlash,
+        alpha: { from: 0.18, to: 0 },
+        duration: 800,
+        ease: "Quadratic.Out",
+        onComplete: () => { this.comboFlash?.destroy(); this.comboFlash = undefined; }
+      });
+
+      this.comboText = this.add.text(w/2, h/3, `COMBO x${this.combo}!`, {
+        fontFamily: "Trebuchet MS",
+        fontSize: "64px",
+        color: "#fbbf24",
+        fontStyle: "900",
+        stroke: "#0f172a",
+        strokeThickness: 6
+      }).setOrigin(0.5).setDepth(1000);
+      this.tweens.add({
+        targets: this.comboText,
+        y: h/3 - 40,
+        alpha: 0,
+        duration: 1200,
+        ease: "Quadratic.Out",
+        onComplete: () => { this.comboText?.destroy(); this.comboText = undefined; }
+      });
+    }
+  }
+
+
   private onTileTapped(tile: TileEntity): void {
     if (this.roundOver || tile.state !== "board") {
       return;
@@ -475,6 +512,7 @@ export class GameScene extends Phaser.Scene {
     if (removedCount > 0) {
       this.combo += 1;
       this.maxCombo = Math.max(this.maxCombo, this.combo);
+    this.maybeShowComboCelebration();
     } else {
       this.combo = 0;
     }
