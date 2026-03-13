@@ -28,5 +28,7 @@ if (typeof performance !== "undefined") {
 }
 // Hide HTML boot loader once Phaser is created
 const loader = document.getElementById("boot-loading");
+const bootStage = document.getElementById("boot-stage");
+if (bootStage) bootStage.textContent = "阶段：启动引擎";
 if (loader) loader.style.display = "none";
 

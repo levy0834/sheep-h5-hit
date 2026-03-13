@@ -344,8 +344,8 @@ export class GameScene extends Phaser.Scene {
       };
 
       const iconImage = this.add
-        .image(0, -2, iconIdByKind[kind.id] ?? MAGIC_TOKENS.ids.spark)
-        .setDisplaySize(TILE_WIDTH * 0.80, TILE_WIDTH * 0.80)
+        .image(0, 0, iconIdByKind[kind.id] ?? MAGIC_TOKENS.ids.spark)
+        .setDisplaySize(TILE_WIDTH * 0.85, TILE_WIDTH * 0.85)
         .setOrigin(0.5);
 
       // Rare badge & locked marker
@@ -371,7 +371,7 @@ export class GameScene extends Phaser.Scene {
 
       if (isLocked) {
         body.setTint(0xb8c2d9);
-        iconImage.setAlpha(0.35);
+        iconImage.setAlpha(0.45);
       }
 
 
