@@ -220,11 +220,12 @@ function drawIconShape(
       graphics.fillCircle(32, 26, 10);
       graphics.fillCircle(32, 40, 10);
       break;
-    case "B": // leaf
+    case "B": // leaf (fallback polygon; avoids quadraticCurveTo typing differences)
       graphics.beginPath();
       graphics.moveTo(20, 34);
-      graphics.quadraticCurveTo(32, 14, 44, 34);
-      graphics.quadraticCurveTo(32, 50, 20, 34);
+      graphics.lineTo(28, 18);
+      graphics.lineTo(44, 34);
+      graphics.lineTo(32, 50);
       graphics.closePath();
       graphics.fillPath();
       break;
