@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { LEVELS } from "../levels";
 import { PRODUCT_COPY } from "../../meta/content/product-copy";
 import { MAGIC_TOKENS, paintMagicBackdrop, registerMagicTextures } from "../../ui/magicStyle";
+import { MOTION, addFloatMotion, addPulseMotion, applyPressBounce } from "../../ui/motion";
 
 export class StartScene extends Phaser.Scene {
   private isBootstrapping = false;
@@ -37,6 +38,7 @@ export class StartScene extends Phaser.Scene {
       .setOrigin(0, 0);
     // rounded feel via shadow
     sticker.setShadow(0, 6, "rgba(0,0,0,0.22)", 10, false, true);
+    addFloatMotion(this, sticker, 5, MOTION.float);
 
     this.add
       .text(width / 2, 84, "羊了个羊·翻盘版", {
@@ -82,6 +84,13 @@ export class StartScene extends Phaser.Scene {
         }
       )
       .setOrigin(0.5);
+    addPulseMotion(this, this.loadingHintText, {
+      scaleFrom: 0.99,
+      scaleTo: 1.02,
+      alphaFrom: 0.72,
+      alphaTo: 1,
+      duration: MOTION.glow
+    });
 
     const { body, label } = this.createButton(
       width / 2,
@@ -342,34 +351,20 @@ export class StartScene extends Phaser.Scene {
 
       locked = true;
       setEnabled(false);
-      this.tweens.add({
-        targets: [body, text],
-        scaleX: 0.96,
-        scaleY: 0.96,
-        duration: 90,
-        yoyo: true,
-        onComplete: () => {
-          Promise.resolve()
-            .then(() => onClick())
-            .catch((error) => {
-              console.error("Start button action failed:", error);
-            })
-            .finally(() => {
-              releaseLock();
-              if (!this.sys.isActive() || this.isBootstrapping) {
-                return;
-              }
-              setEnabled(true);
-            });
-        },
-        onStop: () => {
-          releaseLock();
-          if (!this.sys.isActive() || this.isBootstrapping) {
-            return;
-          }
-          setEnabled(true);
-        }
-      });
+      applyPressBounce(this, [body, text], () => {
+        Promise.resolve()
+          .then(() => onClick())
+          .catch((error) => {
+            console.error("Start button action failed:", error);
+          })
+          .finally(() => {
+            releaseLock();
+            if (!this.sys.isActive() || this.isBootstrapping) {
+              return;
+            }
+            setEnabled(true);
+          });
+      }, 0.925);
     });
 
     shadow.setDepth(1);

@@ -10,6 +10,7 @@ import {
   TILE_WIDTH
 } from "../constants";
 import { MAGIC_TOKENS, paintMagicBackdrop, registerMagicTextures } from "../../ui/magicStyle";
+import { MOTION, addFloatMotion, addPulseMotion, applyPressBounce } from "../../ui/motion";
 import {
   LEVELS,
   TILE_KINDS,
@@ -379,6 +380,19 @@ export class GameScene extends Phaser.Scene {
       card.setDepth(80 + placement.layer * 16 + placement.row);
       card.setInteractive({ useHandCursor: true });
 
+      // Add subtle hover float for rare tiles
+      if (isRare) {
+        addFloatMotion(this, card, 2.5, 3600, 200);
+        addPulseMotion(this, rareGlow, {
+          scaleFrom: 0.98,
+          scaleTo: 1.08,
+          alphaFrom: 0.7,
+          alphaTo: 1,
+          duration: 3800,
+          delay: Math.random() * 1800
+        });
+      }
+
       const tile: TileEntity = {
         id: i,
         kind,
@@ -408,6 +422,13 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    // Immediate visual press feedback
+    applyPressBounce(this, tile.card, () => {
+      void this.onTileConfirmed(tile);
+    }, 0.94);
+  }
+
+  private onTileConfirmed(tile: TileEntity): void {
     this.pushUndoSnapshot();
     this.taps += 1;
     tile.state = "slot";

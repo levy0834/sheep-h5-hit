@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { PRODUCT_COPY } from "../../meta/content/product-copy";
 import { paintMagicBackdrop, MAGIC_TOKENS } from "../../ui/magicStyle";
+import { MOTION, addFloatMotion, addPulseMotion, applyPressBounce } from "../../ui/motion";
 import type { RoundResultData } from "../types";
 
 const defaultResult: RoundResultData = {
@@ -81,7 +82,7 @@ export class ResultScene extends Phaser.Scene {
       .setWordWrapWidth(336)
       .setOrigin(0.5);
 
-    this.add
+    const perfBadge = this.add
       .rectangle(width / 2, 286, 332, 44, accentColor, 0.18)
       .setStrokeStyle(2, accentColor, 0.8);
     this.add
@@ -92,6 +93,13 @@ export class ResultScene extends Phaser.Scene {
         fontStyle: "bold"
       })
       .setOrigin(0.5);
+    addPulseMotion(this, perfBadge, {
+      scaleFrom: 0.98,
+      scaleTo: 1.03,
+      alphaFrom: 0.7,
+      alphaTo: 0.95,
+      duration: 2800
+    });
 
     this.add
       .rectangle(width / 2, 410, 336, 184, 0xf8fafc, 0.12)
@@ -267,31 +275,18 @@ export class ResultScene extends Phaser.Scene {
 
       locked = true;
       this.transitionLocked = true;
-      this.tweens.add({
-        targets: [body, text, shadow],
-        scaleX: 0.94,
-        scaleY: 0.94,
-        duration: 70,
-        yoyo: true,
-        onComplete: () => {
-          releaseLock();
-          if (!this.sys.isActive()) {
-            return;
-          }
-          try {
-            onClick();
-          } catch (error) {
-            this.transitionLocked = false;
-            console.error(`Result button "${label}" action failed:`, error);
-          }
-        },
-        onStop: () => {
-          releaseLock();
-          if (this.sys.isActive()) {
-            this.transitionLocked = false;
-          }
+      applyPressBounce(this, [body, text, shadow], () => {
+        releaseLock();
+        if (!this.sys.isActive()) {
+          return;
         }
-      });
+        try {
+          onClick();
+        } catch (error) {
+          this.transitionLocked = false;
+          console.error(`Result button "${label}" action failed:`, error);
+        }
+      }, 0.93);
     });
   }
 }

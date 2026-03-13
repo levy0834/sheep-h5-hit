@@ -1,0 +1,8 @@
+{
+  "acceptance": {
+    "commands": [
+      "npm run build",
+      "bash .agent/auto_monitor.sh"
+    ]
+  }
+}

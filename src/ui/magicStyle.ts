@@ -31,6 +31,8 @@ export interface MagicTokens {
     panel: string;
     hudBadge: string;
     spark: string;
+    glow: string;
+    grain: string;
   };
   text: {
     fontFamily: string;
@@ -71,7 +73,9 @@ const BASE_TOKENS: MagicTokens = {
     tileLocked: "magic-tile-locked",
     panel: "magic-panel",
     hudBadge: "magic-hud-badge",
-    spark: "magic-spark"
+    spark: "magic-spark",
+    glow: "magic-glow",
+    grain: "magic-grain"
   },
   text: {
     fontFamily: '"PingFang SC", "Microsoft YaHei", sans-serif',
@@ -151,6 +155,33 @@ function drawSparkTexture(graphics: Phaser.GameObjects.Graphics, colorHex: strin
   graphics.fillCircle(20, 20, 3);
 }
 
+function drawGlowTexture(graphics: Phaser.GameObjects.Graphics, colorHex: string): void {
+  const color = colorToInt(colorHex);
+  graphics.clear();
+  // Soft center glow
+  graphics.fillStyle(color, 0.18);
+  graphics.fillCircle(64, 64, 56);
+  graphics.fillStyle(color, 0.22);
+  graphics.fillCircle(64, 64, 40);
+  graphics.fillStyle(color, 0.28);
+  graphics.fillCircle(64, 64, 26);
+  graphics.fillStyle(0xffffff, 0.12);
+  graphics.fillCircle(64, 64, 18);
+}
+
+function drawGrainTexture(graphics: Phaser.GameObjects.Graphics): void {
+  // Lightweight film grain (generated once) for subtle premium feel.
+  const g = graphics;
+  g.clear();
+  g.fillStyle(0xffffff, 0.06);
+  for (let i = 0; i < 260; i += 1) {
+    const x = Math.floor(Math.random() * 128);
+    const y = Math.floor(Math.random() * 128);
+    const r = 1 + Math.random() * 1.3;
+    g.fillCircle(x, y, r);
+  }
+}
+
 export function registerMagicTextures(scene: Phaser.Scene): MagicTokens {
   const tokens = BASE_TOKENS;
   const { ids, tile, palette } = tokens;
@@ -210,14 +241,28 @@ export function registerMagicTextures(scene: Phaser.Scene): MagicTokens {
     graphics.generateTexture(ids.spark, 40, 40);
   }
 
+  if (!scene.textures.exists(ids.glow)) {
+    graphics.clear();
+    drawGlowTexture(graphics, palette.accent);
+    graphics.generateTexture(ids.glow, 128, 128);
+  }
+
+  if (!scene.textures.exists(ids.grain)) {
+    graphics.clear();
+    drawGrainTexture(graphics);
+    graphics.generateTexture(ids.grain, 128, 128);
+  }
+
   graphics.destroy();
   return tokens;
 }
 
-export function paintMagicBackdrop(scene: Phaser.Scene, width: number, height: number): Phaser.GameObjects.Graphics {
+export function paintMagicBackdrop(scene: Phaser.Scene, width: number, height: number): Phaser.GameObjects.Container {
   const tokens = BASE_TOKENS;
-  const graphics = scene.add.graphics();
+  const container = scene.add.container(0, 0);
 
+  // Base gradient
+  const graphics = scene.add.graphics();
   graphics.fillGradientStyle(
     colorToInt(tokens.palette.bgTop),
     colorToInt(tokens.palette.bgTop),
@@ -226,7 +271,9 @@ export function paintMagicBackdrop(scene: Phaser.Scene, width: number, height: n
     1
   );
   graphics.fillRect(0, 0, width, height);
+  container.add(graphics);
 
+  // Soft spotlights
   graphics.fillStyle(colorToInt(tokens.palette.mist), 0.2);
   graphics.fillCircle(width * 0.16, height * 0.18, Math.max(54, width * 0.13));
   graphics.fillCircle(width * 0.88, height * 0.08, Math.max(42, width * 0.1));
@@ -235,7 +282,60 @@ export function paintMagicBackdrop(scene: Phaser.Scene, width: number, height: n
   graphics.fillCircle(width * 0.9, height * 0.7, Math.max(64, width * 0.18));
   graphics.fillCircle(width * 0.02, height * 0.54, Math.max(56, width * 0.14));
 
-  return graphics;
+  // A subtle animated glow layer for "premium" movement
+  if (!scene.textures.exists(tokens.ids.glow) || !scene.textures.exists(tokens.ids.grain)) {
+    registerMagicTextures(scene);
+  }
+
+  const glowA = scene.add
+    .image(width * 0.2, height * 0.28, tokens.ids.glow)
+    .setAlpha(0.28)
+    .setBlendMode("SCREEN")
+    .setScale(2.4);
+
+  const glowB = scene.add
+    .image(width * 0.82, height * 0.78, tokens.ids.glow)
+    .setAlpha(0.22)
+    .setBlendMode("SCREEN")
+    .setScale(2.8);
+
+  const grain = scene.add
+    .tileSprite(0, 0, width, height, tokens.ids.grain)
+    .setOrigin(0, 0)
+    .setAlpha(0.08)
+    .setBlendMode("OVERLAY");
+
+  container.add([glowA, glowB, grain]);
+
+  scene.tweens.add({
+    targets: glowA,
+    alpha: { from: 0.22, to: 0.36 },
+    duration: 2600,
+    yoyo: true,
+    repeat: -1,
+    ease: "Sine.easeInOut"
+  });
+
+  scene.tweens.add({
+    targets: glowB,
+    alpha: { from: 0.18, to: 0.3 },
+    duration: 3200,
+    yoyo: true,
+    repeat: -1,
+    ease: "Sine.easeInOut",
+    delay: 260
+  });
+
+  scene.tweens.add({
+    targets: grain,
+    tilePositionX: "+=128",
+    tilePositionY: "+=64",
+    duration: 8200,
+    repeat: -1,
+    ease: "Linear"
+  });
+
+  return container;
 }
 
 export function createHudBadge(
