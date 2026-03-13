@@ -68,7 +68,7 @@ export class ResultScene extends Phaser.Scene {
     this.add
       .text(width / 2, 180, this.result.reason, {
         fontFamily: "Trebuchet MS",
-        fontSize: "22px",
+        fontSize: "16px",
         color: "#eefcff"
       })
       .setOrigin(0.5);
@@ -76,7 +76,7 @@ export class ResultScene extends Phaser.Scene {
     this.add
       .text(width / 2, 230, flavorLine, {
         fontFamily: "Trebuchet MS",
-        fontSize: "18px",
+        fontSize: "16px",
         color: "#d9f7ff",
         align: "center"
       })
@@ -89,7 +89,7 @@ export class ResultScene extends Phaser.Scene {
     this.add
       .text(width / 2, 286, `评价 · ${performanceTag}`, {
         fontFamily: "Trebuchet MS",
-        fontSize: "22px",
+        fontSize: "16px",
         color: this.result.win ? "#30e6b4" : "#ffd36b",
         fontStyle: "bold"
       })
@@ -103,9 +103,9 @@ export class ResultScene extends Phaser.Scene {
     });
 
     const statsPanel = this.add
-      .rectangle(width / 2, 410, 336, 184, 0xf8fafc, 0.12)
+      .rectangle(width / 2, 386, 322, 156, 0xf8fafc, 0.12)
       .setStrokeStyle(2, accentColor, 0.75);
-    setShadow(statsPanel, 0, 10, "rgba(0,0,0,0.2)", 18, false, true);
+    setShadow(statsPanel, 0, 6, "rgba(0,0,0,0.12)", 10, false, true);
     this.add
       .text(
         width / 2,
@@ -113,7 +113,7 @@ export class ResultScene extends Phaser.Scene {
         `关卡：${this.result.levelName}\n进度：${this.result.levelNumber}/${this.result.totalLevels}\n用时：${this.formatElapsed(this.result.elapsedMs)}\n点击：${this.result.taps}  消除：${this.result.matchedTiles}`,
         {
           fontFamily: "Trebuchet MS",
-          fontSize: "20px",
+          fontSize: "16px",
           color: "#0f172a",
           align: "center",
           lineSpacing: 6
@@ -128,7 +128,7 @@ export class ResultScene extends Phaser.Scene {
         `最高连击：${this.result.maxCombo}  效率：${efficiency}`,
         {
           fontFamily: "Trebuchet MS",
-          fontSize: "18px",
+          fontSize: "16px",
           color: "#0f172a",
           align: "center"
         }
@@ -136,7 +136,7 @@ export class ResultScene extends Phaser.Scene {
       .setOrigin(0.5, 0);
 
     this.add
-      .rectangle(width / 2, 558, 336, 120, 0xf8fafc, 0.12)
+      .rectangle(width / 2, 530, 336, 120, 0xf8fafc, 0.12)
       .setStrokeStyle(2, accentColor, 0.7);
     this.add
       .text(
@@ -145,7 +145,7 @@ export class ResultScene extends Phaser.Scene {
         `抉择：${this.result.twistCount}  翻盘连段：${this.result.comebackChain}\n卡牌：${this.result.rescueCardsUsed}/${this.result.rescueCardsGranted}  濒死：${this.result.nearFailCount}  护盾：${this.result.overflowShieldSaves}`,
         {
           fontFamily: "Trebuchet MS",
-          fontSize: "17px",
+          fontSize: "15px",
           color: "#0f172a",
           align: "center",
           lineSpacing: 7
@@ -154,9 +154,9 @@ export class ResultScene extends Phaser.Scene {
       .setOrigin(0.5, 0);
 
     this.add
-      .text(width / 2, 640, `💡 ${nextStep}`, {
+      .text(width / 2, 618, `💡 ${nextStep}`, {
         fontFamily: "Trebuchet MS",
-        fontSize: "17px",
+        fontSize: "15px",
         color: this.result.win ? "#1e40af" : "#9d174d",
         align: "center",
         fontStyle: "bold"

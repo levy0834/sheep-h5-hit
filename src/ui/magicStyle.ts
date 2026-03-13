@@ -451,7 +451,7 @@ export function paintMagicBackdrop(scene: Phaser.Scene, width: number, height: n
   const grain = scene.add
     .tileSprite(0, 0, width, height, tokens.ids.grain)
     .setOrigin(0, 0)
-    .setAlpha(0.05)
+    .setAlpha(0.04)
     .setBlendMode("OVERLAY");
 
   container.add([glowA, glowB, grain]);

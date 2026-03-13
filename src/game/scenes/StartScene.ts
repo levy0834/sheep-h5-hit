@@ -70,8 +70,8 @@ export class StartScene extends Phaser.Scene {
       .setWordWrapWidth(320)
       .setOrigin(0.5);
 
-    this.createGuidePanel(width / 2, 330, 330, 140, "基础规则", startCopy.coreRules);
-    this.createGuidePanel(width / 2, 500, 330, 140, "翻盘提示", startCopy.metaHints);
+    this.createGuidePanel(width / 2, 310, 320, 130, "基础规则", startCopy.coreRules);
+    this.createGuidePanel(width / 2, 470, 320, 130, "翻盘提示", startCopy.metaHints);
 
     this.loadingHintText = this.add
       .text(
@@ -258,7 +258,7 @@ export class StartScene extends Phaser.Scene {
         fontFamily: "Trebuchet MS",
         fontSize: "14px",
         color: "#e2e8f0",
-        lineSpacing: 7
+        lineSpacing: 8
       })
       .setWordWrapWidth(w - 28)
       .setOrigin(0, 0);
