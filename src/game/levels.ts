@@ -59,6 +59,32 @@ const makeGridPlacements = (
   return placements;
 };
 
+interface LayerCoord {
+  col: number;
+  row: number;
+  rare?: boolean;
+  locked?: boolean;
+}
+
+const makeLayerPlacements = (
+  layer: number,
+  coords: LayerCoord[],
+  kinds: string[]
+): TilePlacement[] => {
+  if (coords.length !== kinds.length) {
+    throw new Error("kind count does not match tile count");
+  }
+
+  return coords.map((coord, index) => ({
+    layer,
+    col: coord.col,
+    row: coord.row,
+    kindId: kinds[index],
+    rare: coord.rare,
+    locked: coord.locked
+  }));
+};
+
 const topKinds = seedShuffle(
   ["A", "A", "A", "B", "B", "B", "C", "C", "C", "D", "D", "D"],
   33
@@ -96,6 +122,58 @@ const levelTwoKinds = seedShuffle(
   TILE_KINDS.flatMap((kind) => [kind.id, kind.id, kind.id]),
   20260310
 );
+const levelThreeKinds = seedShuffle(
+  TILE_KINDS.flatMap((kind) => [kind.id, kind.id, kind.id]),
+  20260311
+);
+
+const levelThreeLayer0: LayerCoord[] = [
+  { col: 0, row: 0.2, locked: true },
+  { col: 1, row: 0 },
+  { col: 2, row: 0.2 },
+  { col: 3, row: 0 },
+  { col: 4, row: 0.2, locked: true },
+  { col: 0.5, row: 1 },
+  { col: 1.5, row: 1.2 },
+  { col: 2.5, row: 1 },
+  { col: 3.5, row: 1.2 },
+  { col: 4.5, row: 1, rare: true },
+  { col: 1, row: 2.1 },
+  { col: 2, row: 2.3 },
+  { col: 3, row: 2.1 },
+  { col: 1.5, row: 3.1 },
+  { col: 2.5, row: 3.1, rare: true }
+];
+
+const levelThreeLayer1: LayerCoord[] = [
+  { col: 1, row: 0.6 },
+  { col: 2, row: 0.8, rare: true },
+  { col: 3, row: 0.6 },
+  { col: 0.8, row: 1.6 },
+  { col: 1.8, row: 1.8, locked: true },
+  { col: 2.8, row: 1.8 },
+  { col: 3.8, row: 1.6 },
+  { col: 1.4, row: 2.6 },
+  { col: 2.4, row: 2.8, rare: true },
+  { col: 3.4, row: 2.6, locked: true },
+  { col: 2.4, row: 3.4 }
+];
+
+const levelThreeLayer2: LayerCoord[] = [
+  { col: 2.2, row: 0.8 },
+  { col: 1.4, row: 1.4, rare: true },
+  { col: 2, row: 1.4 },
+  { col: 3, row: 1.4, locked: true },
+  { col: 3, row: 2.2 },
+  { col: 2.2, row: 2.2, rare: true },
+  { col: 1.4, row: 2.2 }
+];
+
+const levelThreeLayer3: LayerCoord[] = [
+  { col: 2.3, row: 1.6, rare: true },
+  { col: 2.8, row: 1.9, locked: true },
+  { col: 2.3, row: 2.2, rare: true }
+];
 
 export const LEVEL_ONE: LevelDefinition = {
   id: "level-1",
@@ -116,7 +194,18 @@ export const LEVEL_TWO: LevelDefinition = {
   ]
 };
 
-export const LEVELS: LevelDefinition[] = [LEVEL_ONE, LEVEL_TWO];
+export const LEVEL_THREE: LevelDefinition = {
+  id: "level-3",
+  name: "Storm Spiral",
+  placements: [
+    ...makeLayerPlacements(0, levelThreeLayer0, levelThreeKinds.slice(0, 15)),
+    ...makeLayerPlacements(1, levelThreeLayer1, levelThreeKinds.slice(15, 26)),
+    ...makeLayerPlacements(2, levelThreeLayer2, levelThreeKinds.slice(26, 33)),
+    ...makeLayerPlacements(3, levelThreeLayer3, levelThreeKinds.slice(33, 36))
+  ]
+};
+
+export const LEVELS: LevelDefinition[] = [LEVEL_ONE, LEVEL_TWO, LEVEL_THREE];
 
 export const getLevelById = (levelId?: string): LevelDefinition =>
   LEVELS.find((item) => item.id === levelId) ?? LEVELS[0];

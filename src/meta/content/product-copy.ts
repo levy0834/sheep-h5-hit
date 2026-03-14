@@ -1,7 +1,7 @@
 export const PRODUCT_COPY = {
   start: {
     title: "手快翻盘",
-    subtitle: "压力拉高会触发翻盘抉择。敢冒险，才有机会逆转。",
+    subtitle: "三关进阶挑战。压力拉高会触发翻盘抉择，敢冒险才有机会逆转。",
     primaryCta: "开始游戏",
     secondaryCta: "看看翻盘怎么玩",
     loadingCta: "正在加载对局内容…",

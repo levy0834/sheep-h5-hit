@@ -72,6 +72,16 @@ export class StartScene extends Phaser.Scene {
       .setWordWrapWidth(Math.min(360, Math.floor(width * 0.86)))
       .setOrigin(0.5);
 
+    this.add
+      .text(width / 2, 232, "小提示：关卡可反复重玩，冲更好成绩。", {
+        fontFamily: "Trebuchet MS",
+        fontSize: "15px",
+        color: "#c7e6ff",
+        align: "center"
+      })
+      .setWordWrapWidth(Math.min(340, Math.floor(width * 0.84)))
+      .setOrigin(0.5);
+
     this.createGuidePanel(width / 2, 310, 320, 130, "基础规则", startCopy.coreRules);
     this.createGuidePanel(width / 2, 470, 320, 130, "翻盘提示", startCopy.metaHints);
 

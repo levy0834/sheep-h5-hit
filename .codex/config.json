@@ -1,0 +1,7 @@
+{
+  "project_path": "/Users/levy/.openclaw/workspace/projects/sheep-h5-hit",
+  "ci_command": "npm run build",
+  "default_timebox": 10,
+  "auto_commit": true,
+  "next_goal": "Mobile-first strategy polishing for sheep-h5-hit: keep generating next iteration demands, prioritize replay systems, onboarding clarity, and touch-friendly game feel."
+}
