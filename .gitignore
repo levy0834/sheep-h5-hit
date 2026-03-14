@@ -41,3 +41,9 @@ Thumbs.db
 
 # Local monitoring artifacts
 .monitor/
+
+.codex/
+.agent/
+dist/
+node_modules/
+.DS_Store
