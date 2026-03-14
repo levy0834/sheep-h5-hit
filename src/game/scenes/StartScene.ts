@@ -73,17 +73,29 @@ export class StartScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, 232, "小提示：关卡可反复重玩，冲更好成绩。", {
+      .text(width / 2, 238, startCopy.readabilityHint, {
+        fontFamily: "Trebuchet MS",
+        fontSize: "14px",
+        color: "#e2e8f0",
+        align: "center",
+        backgroundColor: "rgba(15, 23, 42, 0.35)"
+      })
+      .setPadding(12, 6, 12, 6)
+      .setWordWrapWidth(Math.min(350, Math.floor(width * 0.84)))
+      .setOrigin(0.5);
+
+    this.add
+      .text(width / 2, 274, startCopy.firstRunHint, {
         fontFamily: "Trebuchet MS",
         fontSize: "15px",
-        color: "#c7e6ff",
+        color: "#bfdbfe",
         align: "center"
       })
       .setWordWrapWidth(Math.min(340, Math.floor(width * 0.84)))
       .setOrigin(0.5);
 
-    this.createGuidePanel(width / 2, 310, 320, 130, "基础规则", startCopy.coreRules);
-    this.createGuidePanel(width / 2, 470, 320, 130, "翻盘提示", startCopy.metaHints);
+    this.createGuidePanel(width / 2, 340, 320, 130, "基础规则", startCopy.coreRules);
+    this.createGuidePanel(width / 2, 500, 320, 130, "翻盘提示", startCopy.metaHints);
 
     this.loadingHintText = this.add
       .text(
