@@ -11,6 +11,7 @@ import {
 } from "../constants";
 import { MAGIC_TOKENS, paintMagicBackdrop, registerMagicTextures } from "../../ui/magicStyle";
 import { MOTION, addFloatMotion, addPulseMotion, applyPressBounce } from "../../ui/motion";
+import { HAPTIC, haptic } from "../../ui/haptics";
 import { ensureSfxOnGame } from "../../ui/sfx";
 import {
   LEVELS,
@@ -497,6 +498,7 @@ export class GameScene extends Phaser.Scene {
 
     if (this.isTileBlocked(tile)) {
       this.sfx.play(this, "tile_blocked", { volume: 0.4, cooldownMs: 120 });
+      haptic(HAPTIC.warning);
       this.bounceBlocked(tile);
       this.flashBlocked(tile);
       this.spawnBlockedDust(tile.card.x, tile.card.y);
@@ -508,6 +510,7 @@ export class GameScene extends Phaser.Scene {
 
     // Immediate visual press feedback
     this.sfx.play(this, "tile_pick", { volume: 0.45, cooldownMs: 40 });
+    haptic(HAPTIC.tap);
     applyPressBounce(this, tile.card, () => {
       void this.onTileConfirmed(tile);
     }, 0.94);
@@ -811,6 +814,7 @@ export class GameScene extends Phaser.Scene {
 
     if (removedAny) {
       this.sfx.play(this, "match", { volume: 0.65, cooldownMs: 60 });
+      haptic(HAPTIC.success);
       this.cameraPunch(90, 0.006);
       this.statusText.setText("三连消除，继续连起来！");
       this.layoutSlotTiles(110);
