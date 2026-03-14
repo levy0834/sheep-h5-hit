@@ -3,12 +3,34 @@ import "./style.css";
 const bootStage = document.getElementById("boot-stage");
 const loader = document.getElementById("boot-loading");
 const gameRoot = document.getElementById("game-root");
+const retryButton = document.getElementById("boot-retry") as HTMLButtonElement | null;
+const errorHint = document.getElementById("boot-error");
 
 function setBootStage(text: string): void {
   if (bootStage) bootStage.textContent = text;
 }
 
+function setBootFailed(message: string): void {
+  setBootStage("阶段：启动失败");
+  if (errorHint) {
+    errorHint.textContent = message;
+    errorHint.style.display = "block";
+  }
+  if (retryButton) {
+    retryButton.style.display = "inline-flex";
+    retryButton.disabled = false;
+  }
+}
+
 async function bootstrap(): Promise<void> {
+  if (retryButton) {
+    retryButton.disabled = true;
+    retryButton.style.display = "none";
+  }
+  if (errorHint) {
+    errorHint.style.display = "none";
+  }
+
   setBootStage("阶段：加载引擎");
 
   const [{ default: Phaser }, { GAME_HEIGHT, GAME_WIDTH }, { StartScene }, { ensureSfxOnGame }] =
@@ -50,8 +72,17 @@ async function bootstrap(): Promise<void> {
   if (gameRoot) gameRoot.dataset.booted = "true";
 }
 
+if (retryButton) {
+  retryButton.addEventListener("click", () => {
+    void bootstrap().catch((error) => {
+      console.error("Retry bootstrap failed:", error);
+      setBootFailed("再次加载失败，请刷新页面后重试");
+    });
+  });
+}
+
 void bootstrap().catch((error) => {
   console.error("Failed to bootstrap game:", error);
-  setBootStage("阶段：加载失败，请刷新重试");
   if (loader) loader.style.display = "flex";
+  setBootFailed("加载失败，请点重试；如果还不行再刷新页面");
 });
