@@ -1,89 +1,17 @@
 {
-  "project": {
-    "name": "sheep-h5-hit",
-    "root": "/Users/levy/.openclaw/workspace/projects/sheep-h5-hit",
-    "final_deliverable": "",
-    "acceptance_criteria": [],
-    "non_goals": [],
-    "constraints": []
-  },
-  "status": {
-    "overall_progress": 30,
-    "current_iteration": 4,
-    "current_stage": "manual",
-    "state": "running"
-  },
-  "config": {
-    "project_config_path": ".agent/project-config.json"
-  },
-  "iterations": [
-    {
-      "number": 1,
-      "goal": "视觉升级第一轮：把首页与整体UI基调从原型态提升到更像正式H5游戏，优先做统一视觉主题、首页观感、基础UI样式改造；不要重写核心玩法逻辑。需要接住已生成的魔法牧场/轻奇幻方向，优先使用本地可控实现（CSS/Phaser Graphics/少量本地图片资源），并保证可构建。完成后说明改了哪些文件、做了哪些视觉升级、还缺什么。",
-      "timebox_minutes": 10,
-      "started_at": "2026-03-12T23:22:37.058233+00:00",
-      "ended_at": "2026-03-13T00:00:51.393202+00:00",
-      "duration_minutes": 38,
-      "result": "off_track",
-      "outputs": [],
-      "checks": [],
-      "issues": [
-        "自动迭代链路不稳定（锁/沙箱read-only误判），改为手工推进。"
-      ],
-      "next_goal": "手工推进：接入 design-art 的视觉系统到 StartScene/GameScene/Tile，并保证 build 通过。"
-    },
-    {
-      "number": 2,
-      "goal": "手工推进：接入 magicStyle（纹理/背景）并升级 StartScene + GameScene tile 质感，修复 TS 类型缺失，保证 npm run build 通过。",
-      "timebox_minutes": 20,
-      "started_at": "2026-03-13T00:08:00+00:00",
-      "ended_at": "2026-03-13T00:18:40+00:00",
-      "duration_minutes": 11,
-      "result": "pass",
-      "outputs": [
-        "src/ui/magicStyle.ts",
-        "StartScene: magic backdrop + sticker + glass panels + CTA",
-        "GameScene: magic backdrop + tile texture base + blocked overlay"
-      ],
-      "checks": [
-        "npm run build (pass)"
-      ],
-      "issues": [
-        "入口 chunk 仍偏大（~1.2MB），后续拆包优化"
-      ],
-      "next_goal": "迭代3：提升 HUD 质感（MetaHudPanel + 顶部信息区）与 GameScene 顶部按钮统一视觉；不改玩法。"
-    },
-    {
-      "number": 3,
-      "goal": "迭代3：提升 HUD 质感（MetaHudPanel + 顶部信息区）与 GameScene 顶部按钮统一视觉；不改玩法。",
-      "timebox_minutes": 20,
-      "started_at": "2026-03-13T00:29:00+00:00",
-      "ended_at": "2026-03-13T00:50:30+00:00",
-      "duration_minutes": 21,
-      "result": "pass",
-      "outputs": [
-        "MetaHudPanel: 玻璃面板 + 按压反馈",
-        "GameScene 按钮：玻璃填充 + 描边 + 阴影",
-        "GameScene 濒死呼吸灯：槽位外圈呼吸闪烁"
-      ],
-      "checks": [
-        "npm run build (pass)"
-      ],
-      "issues": [],
-      "next_goal": "迭代4：牌面图标叠加（emoji占位）+ 结果页情绪氛围升级（魔法牧场风）。"
-    },
-    {
-      "number": 4,
-      "goal": "迭代4：牌面图标叠加（emoji占位）与结果页情绪氛围升级（魔法牧场风）；不改玩法。",
-      "timebox_minutes": 20,
-      "started_at": "2026-03-13T00:51:00+00:00",
-      "ended_at": "",
-      "duration_minutes": 0,
-      "result": "pending",
-      "outputs": [],
-      "checks": [],
-      "issues": [],
-      "next_goal": ""
-    }
+  "goal": "Working tree has uncommitted changes. Summarize changes, ensure tests pass, and propose a commit message. Do NOT commit/",
+  "timebox_minutes": 5,
+  "start_time": 1773455703.106393,
+  "status": "completed",
+  "progress": 0,
+  "next_goal": "",
+  "history": [],
+  "end_time": 1773456090.850793,
+  "result": "pass",
+  "issues": [
+    "git:dirty"
+  ],
+  "outputs": [
+    "dist"
   ]
 }
