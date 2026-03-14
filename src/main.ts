@@ -1,5 +1,25 @@
 import "./style.css";
 
+
+type BootMetric = { name: string; at: number; deltaMs?: number };
+function metric(name: string): void {
+  const at = typeof performance !== "undefined" ? performance.now() : Date.now();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const store = ((window as any).__BOOT_METRICS__ ??= []) as BootMetric[];
+  const prev = store.length ? store[store.length - 1].at : at;
+  store.push({ name, at, deltaMs: store.length ? at - prev : 0 });
+}
+
+function flushMetrics(): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const store = ((window as any).__BOOT_METRICS__ ??= []) as BootMetric[];
+  if (!store.length) return;
+  // keep it lightweight: one console line
+  const parts = store.map((m) => `${m.name}:${Math.round(m.deltaMs ?? 0)}ms`);
+  // eslint-disable-next-line no-console
+  console.log(`[boot] ${parts.join(" | ")}`);
+}
+
 const bootStage = document.getElementById("boot-stage");
 const loader = document.getElementById("boot-loading");
 const gameRoot = document.getElementById("game-root");
@@ -23,6 +43,7 @@ function setBootFailed(message: string): void {
 }
 
 async function bootstrap(): Promise<void> {
+  metric("start");
   if (retryButton) {
     retryButton.disabled = true;
     retryButton.style.display = "none";
@@ -31,7 +52,10 @@ async function bootstrap(): Promise<void> {
     errorHint.style.display = "none";
   }
 
+  metric("before-import");
   setBootStage("阶段：加载引擎");
+
+  metric("imports-begin");
 
   const [{ default: Phaser }, { GAME_HEIGHT, GAME_WIDTH }, { StartScene }, { ensureSfxOnGame }] =
     await Promise.all([
@@ -41,6 +65,7 @@ async function bootstrap(): Promise<void> {
       import("./ui/sfx")
     ]);
 
+  metric("imports-done");
   setBootStage("阶段：创建游戏");
 
   const config: Phaser.Types.Core.GameConfig = {
@@ -58,6 +83,8 @@ async function bootstrap(): Promise<void> {
     }
   };
 
+  metric("before-new-game");
+
   const game = new Phaser.Game(config);
   ensureSfxOnGame(game);
 
@@ -67,8 +94,11 @@ async function bootstrap(): Promise<void> {
     performance.mark("game-created");
   }
 
+  metric("after-new-game");
   setBootStage("阶段：启动完成");
   if (loader) loader.style.display = "none";
+  metric("done");
+  flushMetrics();
   if (gameRoot) gameRoot.dataset.booted = "true";
 }
 
