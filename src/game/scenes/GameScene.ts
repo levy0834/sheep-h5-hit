@@ -11,6 +11,7 @@ import {
 } from "../constants";
 import { MAGIC_TOKENS, paintMagicBackdrop, registerMagicTextures } from "../../ui/magicStyle";
 import { MOTION, addFloatMotion, addPulseMotion, applyPressBounce } from "../../ui/motion";
+import { HAPTIC, haptic } from "../../ui/haptics";
 import { ensureSfxOnGame } from "../../ui/sfx";
 import {
   LEVELS,
@@ -79,6 +80,7 @@ export class GameScene extends Phaser.Scene {
   private overflowShieldSaves = 0;
   private nearFailLatched = false;
   private nearFailPulse = 0; // 0..1 phase for near-fail breathing
+  private nearFailShakeCooldownUntil = 0;
   private roundStartAtMs = 0;
   private overflowSlotsDelta = 0;
   private overflowSlotsExpiresAtMs = 0;
@@ -118,6 +120,7 @@ export class GameScene extends Phaser.Scene {
     this.comebackChain = 0;
     this.overflowShieldSaves = 0;
     this.nearFailLatched = false;
+    this.nearFailShakeCooldownUntil = 0;
     this.roundStartAtMs = 0;
     this.overflowSlotsDelta = 0;
     this.overflowSlotsExpiresAtMs = 0;
@@ -495,6 +498,7 @@ export class GameScene extends Phaser.Scene {
 
     if (this.isTileBlocked(tile)) {
       this.sfx.play(this, "tile_blocked", { volume: 0.4, cooldownMs: 120 });
+      haptic(HAPTIC.warning);
       this.bounceBlocked(tile);
       this.flashBlocked(tile);
       this.spawnBlockedDust(tile.card.x, tile.card.y);
@@ -506,6 +510,7 @@ export class GameScene extends Phaser.Scene {
 
     // Immediate visual press feedback
     this.sfx.play(this, "tile_pick", { volume: 0.45, cooldownMs: 40 });
+    haptic(HAPTIC.tap);
     applyPressBounce(this, tile.card, () => {
       void this.onTileConfirmed(tile);
     }, 0.94);
@@ -727,6 +732,36 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  private spawnWinConfetti(): void {
+    const { width, height } = this.scale;
+    const colors = [0xfacc15, 0x4ade80, 0x38bdf8, 0xfb7185, 0xf59e0b];
+    const pieces = 40;
+
+    for (let i = 0; i < pieces; i += 1) {
+      const x = 24 + Math.random() * (width - 48);
+      const y = 120 + Math.random() * 80;
+      const size = 4 + Math.random() * 4;
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const piece = this.add
+        .rectangle(x, y, size, size * (0.6 + Math.random() * 0.8), color, 0.95)
+        .setDepth(996)
+        .setAngle(Math.random() * 180);
+
+      const driftX = x + (Math.random() * 2 - 1) * 90;
+      const fallY = height + 40 + Math.random() * 60;
+      this.tweens.add({
+        targets: piece,
+        x: driftX,
+        y: fallY,
+        angle: piece.angle + (Math.random() * 360 - 180),
+        alpha: 0,
+        duration: 900 + Math.random() * 600,
+        ease: "Cubic.In",
+        onComplete: () => piece.destroy()
+      });
+    }
+  }
+
 
   private resolveMatches(): number {
     let removedAny = false;
@@ -779,6 +814,7 @@ export class GameScene extends Phaser.Scene {
 
     if (removedAny) {
       this.sfx.play(this, "match", { volume: 0.65, cooldownMs: 60 });
+      haptic(HAPTIC.success);
       this.cameraPunch(90, 0.006);
       this.statusText.setText("三连消除，继续连起来！");
       this.layoutSlotTiles(110);
@@ -814,8 +850,10 @@ export class GameScene extends Phaser.Scene {
     const slotCapacity = this.getSlotCapacity();
     const slotDelta = slotCapacity - SLOT_CAPACITY;
     const slotDeltaLabel = slotDelta === 0 ? "" : ` (${slotDelta > 0 ? `+${slotDelta}` : slotDelta})`;
+    const freeSlots = slotCapacity - this.slotTiles.length;
+    const nearFailHint = freeSlots <= 1 ? " · 危险" : "";
     this.remainingText.setText(`场上剩余：${remainingOnBoard}`);
-    this.slotText.setText(`槽位：${this.slotTiles.length}/${slotCapacity}${slotDeltaLabel}`);
+    this.slotText.setText(`槽位：${this.slotTiles.length}/${slotCapacity}${slotDeltaLabel}${nearFailHint}`);
     this.renderSlotMarkers(slotCapacity);
   }
 
@@ -970,6 +1008,7 @@ export class GameScene extends Phaser.Scene {
     this.sfx.play(this, win ? "win" : "lose", { volume: 0.7, cooldownMs: 200 });
     if (win) {
       this.cameraPunch(140, 0.006);
+      this.spawnWinConfetti();
     } else {
       this.pulseVignette(0x0f172a);
     }
@@ -1172,7 +1211,14 @@ export class GameScene extends Phaser.Scene {
     this.nearFailCount += 1;
 
     this.sfx.play(this, "near_fail", { volume: 0.55, cooldownMs: 250 });
+    if (this.time.now >= this.nearFailShakeCooldownUntil) {
+      this.cameraPunch(70, 0.0028);
+      this.nearFailShakeCooldownUntil = this.time.now + 360;
+    }
     this.pulseVignette(0xef4444);
+    this.statusText.setText(
+      freeSlots <= 0 ? "槽位已满，立即凑三消或撤销！" : "仅剩 1 格，优先凑三消！"
+    );
 
     this.bus.emit(CORE_EVENTS.NEAR_FAIL, {
       freeSlots,
@@ -1277,6 +1323,18 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    // Advance near-fail breathing pulse continuously while latched.
+    const hadNearFailPulse = this.nearFailPulse > 0;
+    if (this.nearFailLatched) {
+      this.nearFailPulse = (this.nearFailPulse + 0.02) % 1;
+    } else {
+      this.nearFailPulse = 0;
+    }
+    this.updateNearFailVignette();
+    if (this.nearFailLatched || hadNearFailPulse) {
+      this.renderSlotMarkers(this.getSlotCapacity());
+    }
+
     const elapsedMs = this.getRoundElapsedMs();
     const previousCapacity = this.getSlotCapacity();
     let capacityChanged = false;
@@ -1316,15 +1374,6 @@ export class GameScene extends Phaser.Scene {
     if (shouldCheckRoundEnd) {
       this.checkRoundEnd();
     }
-
-    // Advance near-fail breathing pulse when latched
-    if (this.nearFailLatched && !this.roundOver) {
-      this.nearFailPulse = (this.nearFailPulse + 0.02) % 1;
-    } else {
-      this.nearFailPulse = 0;
-    }
-
-    this.updateNearFailVignette();
   }
 
   private consumeIgnoreOverflowShield(): boolean {

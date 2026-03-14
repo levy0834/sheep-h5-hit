@@ -57,3 +57,15 @@
 - [ ] Repo-wide validation passed
 - [ ] Risks documented
 - [ ] Delivery summary prepared
+
+## Iteration updates
+
+### Iteration 2 (A = 更爽) - Completed
+- Scope:
+  - 新增第三关 `Storm Spiral`（4 层错位+中心压顶结构，含少量 rare/locked 视觉标记）
+  - 关卡流程扩展为 3 关，结果页正确展示关卡名与总关数
+  - 近失败可读性增强（槽位危险提示、轻微镜头震动）
+  - 额外爽感反馈：胜利时触发轻量纸屑动画
+- Validation:
+  - `npm run build` 通过
+  - 手玩验证路径：`level-1 -> level-2 -> level-3` 可达，胜负结算与进阶按钮正确

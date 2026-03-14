@@ -5,14 +5,17 @@ import { MOTION, addFloatMotion, addPulseMotion, applyPressBounce } from "../../
 import { setShadow } from "../../ui/shadow";
 import { ensureSfxOnGame } from "../../ui/sfx";
 import type { RoundResultData } from "../types";
+import { LEVELS } from "../levels";
+
+const BEST_SCORE_KEY = "sheep_best_scores_v1";
 
 const defaultResult: RoundResultData = {
   win: false,
   reason: "本局结束。",
-  levelId: "level-1",
-  levelName: "草地牌堆",
+  levelId: LEVELS[0]?.id ?? "level-1",
+  levelName: LEVELS[0]?.name ?? "Meadow Stack",
   levelNumber: 1,
-  totalLevels: 1,
+  totalLevels: LEVELS.length,
   taps: 0,
   matchedTiles: 0,
   maxCombo: 0,
@@ -53,6 +56,9 @@ export class ResultScene extends Phaser.Scene {
     const flavorLine = this.pickResultFlavor();
     const performanceTag = this.resolvePerformanceTag();
     const nextStep = this.resolveNextStep(hasNextLevel);
+    const score = this.computeRoundScore();
+    const { bestScore, isNewRecord } = this.updateBestScore(score);
+    const scoreHint = isNewRecord ? "  新纪录!" : "";
 
     // Use magic-style backdrop with themed accents
     paintMagicBackdrop(this, width, height);
@@ -111,7 +117,7 @@ export class ResultScene extends Phaser.Scene {
     this.add
       .text(
         width / 2,
-        328,
+        320,
         `关卡：${this.result.levelName}\n进度：${this.result.levelNumber}/${this.result.totalLevels}\n用时：${this.formatElapsed(this.result.elapsedMs)}\n点击：${this.result.taps}  消除：${this.result.matchedTiles}`,
         {
           fontFamily: "Trebuchet MS",
@@ -126,13 +132,14 @@ export class ResultScene extends Phaser.Scene {
     this.add
       .text(
         width / 2,
-        396,
-        `最高连击：${this.result.maxCombo}  效率：${efficiency}`,
+        408,
+        `最高连击：${this.result.maxCombo}  效率：${efficiency}\n分数：${score}  本关纪录：${bestScore}${scoreHint}`,
         {
           fontFamily: "Trebuchet MS",
-          fontSize: "16px",
+          fontSize: "15px",
           color: "#0f172a",
-          align: "center"
+          align: "center",
+          lineSpacing: 5
         }
       )
       .setOrigin(0.5, 0);
@@ -240,6 +247,56 @@ export class ResultScene extends Phaser.Scene {
       .padStart(2, "0");
     const secondPart = (seconds % 60).toString().padStart(2, "0");
     return `${minutePart}:${secondPart}`;
+  }
+
+  private computeRoundScore(): number {
+    const seconds = Math.max(1, Math.round(this.result.elapsedMs / 1000));
+    const efficiency = this.result.taps > 0 ? this.result.matchedTiles / this.result.taps : 0;
+    const base = this.result.matchedTiles * 18;
+    const comboBonus = this.result.maxCombo * 120;
+    const speedBonus = Math.max(0, 180 - seconds) * 5;
+    const efficiencyBonus = Math.round(efficiency * 240);
+    const clearBonus = this.result.win ? 900 : 0;
+    const penalty = this.result.rescueCardsUsed * 80 + this.result.nearFailCount * 50 + this.result.twistCount * 30;
+    return Math.max(0, Math.round(base + comboBonus + speedBonus + efficiencyBonus + clearBonus - penalty));
+  }
+
+  private updateBestScore(score: number): { bestScore: number; isNewRecord: boolean } {
+    const bestScores = this.loadBestScores();
+    const previousBest = bestScores[this.result.levelId] ?? 0;
+    if (score > previousBest) {
+      bestScores[this.result.levelId] = score;
+      this.saveBestScores(bestScores);
+      return { bestScore: score, isNewRecord: true };
+    }
+    return { bestScore: previousBest, isNewRecord: false };
+  }
+
+  private loadBestScores(): Record<string, number> {
+    try {
+      const raw = localStorage.getItem(BEST_SCORE_KEY);
+      if (!raw) {
+        return {};
+      }
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      const safeScores: Record<string, number> = {};
+      for (const [levelId, value] of Object.entries(parsed)) {
+        if (levelId.length > 0 && typeof value === "number" && Number.isFinite(value) && value >= 0) {
+          safeScores[levelId] = value;
+        }
+      }
+      return safeScores;
+    } catch {
+      return {};
+    }
+  }
+
+  private saveBestScores(scores: Record<string, number>): void {
+    try {
+      localStorage.setItem(BEST_SCORE_KEY, JSON.stringify(scores));
+    } catch {
+      // ignore write failures
+    }
   }
 
   private createButton(
